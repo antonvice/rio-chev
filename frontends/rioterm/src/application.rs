@@ -808,6 +808,37 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                     }
                 }
             }
+            RioEventType::Rio(RioEvent::Notification(title, message)) => {
+                #[cfg(target_os = "macos")]
+                {
+                    use std::process::Command;
+                    let script = format!(
+                        "display notification \"{}\" with title \"{}\" sound name \"Glass\"",
+                        message.replace("\"", "\\\""),
+                        title.replace("\"", "\\\"")
+                    );
+                    let _ = Command::new("osascript").arg("-e").arg(script).spawn();
+                }
+            }
+            RioEventType::Rio(RioEvent::WindowOpacity(opacity)) => {
+                if let Some(route) = self.router.routes.get_mut(&window_id) {
+                    #[cfg(target_os = "macos")]
+                    {
+                        let bg_color = self.config.colors.background.1;
+                        route.window.winit_window.set_background_color(
+                            bg_color.r,
+                            bg_color.g,
+                            bg_color.b,
+                            opacity as f64,
+                        );
+                    }
+                }
+            }
+            RioEventType::Rio(RioEvent::Badge(badge)) => {
+                if let Some(route) = self.router.routes.get_mut(&window_id) {
+                    route.set_window_subtitle(&badge);
+                }
+            }
             _ => {}
         }
     }

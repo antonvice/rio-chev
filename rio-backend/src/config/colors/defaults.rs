@@ -20,7 +20,7 @@ pub fn background() -> ColorComposition {
 
 #[inline]
 pub fn cursor() -> ColorArray {
-    ColorBuilder::from_hex(String::from("#F712FF"), Format::SRGB0_1)
+    ColorBuilder::from_hex(String::from("#6ED1C3"), Format::SRGB0_1)
         .unwrap()
         .to_arr()
 }
@@ -67,7 +67,7 @@ pub fn tabs_active_foreground() -> ColorArray {
 
 #[inline]
 pub fn tabs_active_highlight() -> ColorArray {
-    ColorBuilder::from_hex(String::from("#ffa133"), Format::SRGB0_1)
+    ColorBuilder::from_hex(String::from("#6ED1C3"), Format::SRGB0_1)
         .unwrap()
         .to_arr()
 }
@@ -114,7 +114,7 @@ pub fn black() -> ColorArray {
 
 #[inline]
 pub fn cyan() -> ColorArray {
-    ColorBuilder::from_hex(String::from("#17d5df"), Format::SRGB0_1)
+    ColorBuilder::from_hex(String::from("#6ED1C3"), Format::SRGB0_1)
         .unwrap()
         .to_arr()
 }

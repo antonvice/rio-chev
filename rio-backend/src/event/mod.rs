@@ -160,6 +160,15 @@ pub enum RioEvent {
     /// Color index: 0 for foreground, 1 for background, 2 for cursor color.
     ColorChange(usize, usize, Option<ColorRgb>),
 
+    /// Side-channel notification
+    Notification(String, String),
+
+    /// Side-channel window opacity change
+    WindowOpacity(f32),
+
+    /// Side-channel tab badge
+    Badge(String),
+
     // No operation
     Noop,
 }
@@ -230,6 +239,15 @@ impl Debug for RioEvent {
             }
             RioEvent::ColorChange(route_id, color, rgb) => {
                 write!(f, "ColorChange({route_id}, {color:?}, {rgb:?})")
+            }
+            RioEvent::Notification(title, message) => {
+                write!(f, "Notification({title}, {message})")
+            }
+            RioEvent::WindowOpacity(opacity) => {
+                write!(f, "WindowOpacity({opacity})")
+            }
+            RioEvent::Badge(badge) => {
+                write!(f, "Badge({badge})")
             }
         }
     }

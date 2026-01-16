@@ -397,6 +397,15 @@ pub trait Handler {
 
     /// Handle XTGETTCAP response.
     fn xtgettcap_response(&mut self, _response: String) {}
+
+    /// Side-Channel Prototype: Trigger a system notification.
+    fn send_notification(&mut self, _title: String, _message: String) {}
+
+    /// Side-Channel Prototype: Set window opacity.
+    fn set_window_opacity(&mut self, _opacity: f32) {}
+
+    /// Side-Channel Prototype: Set a tab badge.
+    fn set_badge(&mut self, _badge: String) {}
 }
 
 pub trait Timeout: Default {
@@ -835,6 +844,36 @@ impl<U: Handler, T: Timeout> copa::Perform for Performer<'_, U, T> {
                     .and_then(|kv| simd_utf8::from_utf8_fast(kv).ok());
 
                 self.handler.set_hyperlink(Some(Hyperlink::new(id, uri)));
+            }
+
+            // Side-Channel Prototype (OSC 1338)
+            b"1338" => {
+                if params.len() >= 2 {
+                    let action = simd_utf8::from_utf8_fast(params[1]).unwrap_or("");
+                    match action {
+                        "notify" => {
+                            if params.len() >= 4 {
+                                let title = simd_utf8::from_utf8_fast(params[2]).unwrap_or("Chev Notification");
+                                let message = simd_utf8::from_utf8_fast(params[3]).unwrap_or("");
+                                self.handler.send_notification(title.to_string(), message.to_string());
+                            }
+                        }
+                        "opacity" => {
+                            if params.len() >= 3 {
+                                if let Ok(opacity) = simd_utf8::from_utf8_fast(params[2]).unwrap_or("1.0").parse::<f32>() {
+                                    self.handler.set_window_opacity(opacity);
+                                }
+                            }
+                        }
+                        "badge" => {
+                            if params.len() >= 3 {
+                                let badge = simd_utf8::from_utf8_fast(params[2]).unwrap_or("");
+                                self.handler.set_badge(badge.to_string());
+                            }
+                        }
+                        _ => {}
+                    }
+                }
             }
 
             b"10" | b"11" | b"12" => {

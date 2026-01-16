@@ -2066,7 +2066,6 @@ impl<U: EventListener> Handler for Crosswords<U> {
         self.mode.remove(Mode::APP_KEYPAD);
     }
 
-    /// Store data into clipboard.
     #[inline]
     fn clipboard_store(&mut self, clipboard: u8, base64: &[u8]) {
         let clipboard_type = match clipboard {
@@ -2083,6 +2082,30 @@ impl<U: EventListener> Handler for Crosswords<U> {
                 );
             }
         }
+    }
+
+    #[inline]
+    fn send_notification(&mut self, title: String, message: String) {
+        self.event_proxy.send_event(
+            RioEvent::Notification(title, message),
+            self.window_id,
+        );
+    }
+
+    #[inline]
+    fn set_window_opacity(&mut self, opacity: f32) {
+        self.event_proxy.send_event(
+            RioEvent::WindowOpacity(opacity),
+            self.window_id,
+        );
+    }
+
+    #[inline]
+    fn set_badge(&mut self, badge: String) {
+        self.event_proxy.send_event(
+            RioEvent::Badge(badge),
+            self.window_id,
+        );
     }
 
     #[inline]
