@@ -1205,7 +1205,7 @@ impl<T: rio_backend::event::EventListener> ContextGrid<T> {
         }
     }
 
-    pub fn split_right(&mut self, context: Context<T>) {
+    pub fn split_right(&mut self, context: Context<T>, ratio: f32) {
         let current_item = if let Some(item) = self.inner.get(&self.current) {
             item
         } else {
@@ -1215,14 +1215,17 @@ impl<T: rio_backend::event::EventListener> ContextGrid<T> {
         let old_right = current_item.right;
         let old_grid_item_height = current_item.val.dimension.height;
         let old_grid_item_width = current_item.val.dimension.width - self.margin.x;
-        let new_grid_item_width = old_grid_item_width / 2.0;
+        
+        let ratio = ratio.clamp(0.1, 0.9);
+        let new_grid_item_width = old_grid_item_width * ratio;
+        let current_item_width = old_grid_item_width * (1.0 - ratio);
 
         // Update current item width
         if let Some(current_item) = self.inner.get_mut(&self.current) {
             current_item
                 .val
                 .dimension
-                .update_width(new_grid_item_width - self.scaled_padding);
+                .update_width(current_item_width - self.scaled_padding);
 
             // The current dimension margin should reset
             // otherwise will add a space before the rect
@@ -1278,7 +1281,7 @@ impl<T: rio_backend::event::EventListener> ContextGrid<T> {
         self.calculate_positions_for_affected_nodes(&[self.current, new_key]);
     }
 
-    pub fn split_down(&mut self, context: Context<T>) {
+    pub fn split_down(&mut self, context: Context<T>, ratio: f32) {
         let current_item = if let Some(item) = self.inner.get(&self.current) {
             item
         } else {
@@ -1288,14 +1291,17 @@ impl<T: rio_backend::event::EventListener> ContextGrid<T> {
         let old_down = current_item.down;
         let old_grid_item_height = current_item.val.dimension.height;
         let old_grid_item_width = current_item.val.dimension.width;
-        let new_grid_item_height = old_grid_item_height / 2.0;
+        
+        let ratio = ratio.clamp(0.1, 0.9);
+        let new_grid_item_height = old_grid_item_height * ratio;
+        let current_item_height = old_grid_item_height * (1.0 - ratio);
 
         // Update current item
         if let Some(current_item) = self.inner.get_mut(&self.current) {
             current_item
                 .val
                 .dimension
-                .update_height(new_grid_item_height - self.scaled_padding);
+                .update_height(current_item_height - self.scaled_padding);
 
             // The current dimension margin should reset
             // otherwise will add a space before the rect

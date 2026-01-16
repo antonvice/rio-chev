@@ -409,6 +409,9 @@ pub trait Handler {
 
     /// Side-Channel Prototype: Set ghost text (AI suggestions).
     fn set_ghost_text(&mut self, _text: String) {}
+
+    /// Side-Channel Prototype: Split the current pane.
+    fn split_pane(&mut self, _direction: String, _ratio: f32, _command: String) {}
 }
 
 pub trait Timeout: Default {
@@ -878,6 +881,14 @@ impl<U: Handler, T: Timeout> copa::Perform for Performer<'_, U, T> {
                             if params.len() >= 3 {
                                 let text = simd_utf8::from_utf8_fast(params[2]).unwrap_or("");
                                 self.handler.set_ghost_text(text.to_string());
+                            }
+                        }
+                        "split" => {
+                            if params.len() >= 5 {
+                                let direction = simd_utf8::from_utf8_fast(params[2]).unwrap_or("left");
+                                let ratio = simd_utf8::from_utf8_fast(params[3]).unwrap_or("0.5").parse::<f32>().unwrap_or(0.5);
+                                let command = simd_utf8::from_utf8_fast(params[4]).unwrap_or("");
+                                self.handler.split_pane(direction.to_string(), ratio, command.to_string());
                             }
                         }
                         _ => {}

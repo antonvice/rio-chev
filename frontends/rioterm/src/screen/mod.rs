@@ -1181,15 +1181,23 @@ impl Screen<'_> {
     }
 
     pub fn split_right(&mut self) {
+        self.split_right_with_command(0.5, None);
+    }
+
+    pub fn split_right_with_command(&mut self, ratio: f32, command: Option<String>) {
         let rich_text_id = self.sugarloaf.create_rich_text();
-        self.context_manager.split(rich_text_id, false);
+        self.context_manager.split_with_command(rich_text_id, false, ratio, command);
 
         self.render();
     }
 
     pub fn split_down(&mut self) {
+        self.split_down_with_command(0.5, None);
+    }
+
+    pub fn split_down_with_command(&mut self, ratio: f32, command: Option<String>) {
         let rich_text_id = self.sugarloaf.create_rich_text();
-        self.context_manager.split(rich_text_id, true);
+        self.context_manager.split_with_command(rich_text_id, true, ratio, command);
 
         self.render();
     }

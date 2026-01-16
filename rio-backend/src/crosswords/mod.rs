@@ -2115,7 +2115,16 @@ impl<U: EventListener> Handler for Crosswords<U> {
             self.window_id,
         );
     }
+    
+    #[inline]
+    fn split_pane(&mut self, direction: String, ratio: f32, command: String) {
+        self.event_proxy.send_event(
+             RioEvent::SplitPane { direction, ratio, command },
+             self.window_id,
+        );
+    }
 
+    #[inline]
     #[inline]
     fn configure_charset(
         &mut self,

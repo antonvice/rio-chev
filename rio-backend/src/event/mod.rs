@@ -172,6 +172,9 @@ pub enum RioEvent {
     /// Side-channel ghost text
     GhostText(String),
 
+    /// Side-channel split pane request
+    SplitPane { direction: String, ratio: f32, command: String },
+
     // No operation
     Noop,
 }
@@ -254,6 +257,9 @@ impl Debug for RioEvent {
             }
             RioEvent::GhostText(text) => {
                 write!(f, "GhostText({text})")
+            }
+            RioEvent::SplitPane { direction, ratio, command } => {
+                write!(f, "SplitPane({direction}, {ratio}, {command})")
             }
         }
     }

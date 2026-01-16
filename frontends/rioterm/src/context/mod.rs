@@ -867,6 +867,10 @@ impl<T: EventListener + Clone + std::marker::Send + 'static> ContextManager<T> {
     }
 
     pub fn split(&mut self, rich_text_id: usize, split_down: bool) {
+        self.split_with_command(rich_text_id, split_down, 0.5, None);
+    }
+
+    pub fn split_with_command(&mut self, rich_text_id: usize, split_down: bool, ratio: f32, command_override: Option<String>) {
         let mut working_dir = self.config.working_dir.clone();
         if self.config.cwd {
             #[cfg(not(target_os = "windows"))]
@@ -895,6 +899,13 @@ impl<T: EventListener + Clone + std::marker::Send + 'static> ContextManager<T> {
             cloned_config.working_dir = working_dir;
         }
 
+        if let Some(cmd) = command_override {
+            cloned_config.shell = rio_backend::config::Shell {
+                 program: cmd,
+                 args: vec![],
+            };
+        }
+
         let current = self.current();
         let cursor = current.cursor_from_ref();
 
@@ -909,9 +920,9 @@ impl<T: EventListener + Clone + std::marker::Send + 'static> ContextManager<T> {
             Ok(new_context) => {
                 let new_route_id = new_context.route_id;
                 if split_down {
-                    self.contexts[self.current_index].split_down(new_context);
+                    self.contexts[self.current_index].split_down(new_context, ratio);
                 } else {
-                    self.contexts[self.current_index].split_right(new_context);
+                    self.contexts[self.current_index].split_right(new_context, ratio);
                 }
 
                 self.current_route = new_route_id;

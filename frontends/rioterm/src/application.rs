@@ -850,6 +850,24 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                     }
                 }
             }
+            RioEventType::Rio(RioEvent::SplitPane { direction, ratio, command }) => {
+                let cmd = if command.is_empty() { None } else { Some(command) };
+                if let Some(route) = self.router.routes.get_mut(&window_id) {
+                    if direction == "right" {
+                        route.window.screen.split_right_with_command(ratio, cmd);
+                    } else if direction == "down" {
+                        route.window.screen.split_down_with_command(ratio, cmd);
+                    } else if direction == "left" {
+                        // Rio doesn't natively support "split left" (it usually pushes new to right)
+                        // But for IDE mode we might want to split it such that broot is on the left.
+                        // For now we'll just use right split as it's what we have.
+                        route.window.screen.split_right_with_command(ratio, cmd);
+                    } else {
+                        route.window.screen.split_right_with_command(ratio, cmd);
+                    }
+                }
+            }
+            }
             _ => {}
         }
     }
