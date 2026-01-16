@@ -406,6 +406,9 @@ pub trait Handler {
 
     /// Side-Channel Prototype: Set a tab badge.
     fn set_badge(&mut self, _badge: String) {}
+
+    /// Side-Channel Prototype: Set ghost text (AI suggestions).
+    fn set_ghost_text(&mut self, _text: String) {}
 }
 
 pub trait Timeout: Default {
@@ -869,6 +872,12 @@ impl<U: Handler, T: Timeout> copa::Perform for Performer<'_, U, T> {
                             if params.len() >= 3 {
                                 let badge = simd_utf8::from_utf8_fast(params[2]).unwrap_or("");
                                 self.handler.set_badge(badge.to_string());
+                            }
+                        }
+                        "ghost" => {
+                            if params.len() >= 3 {
+                                let text = simd_utf8::from_utf8_fast(params[2]).unwrap_or("");
+                                self.handler.set_ghost_text(text.to_string());
                             }
                         }
                         _ => {}

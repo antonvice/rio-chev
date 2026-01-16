@@ -169,6 +169,9 @@ pub enum RioEvent {
     /// Side-channel tab badge
     Badge(String),
 
+    /// Side-channel ghost text
+    GhostText(String),
+
     // No operation
     Noop,
 }
@@ -248,6 +251,9 @@ impl Debug for RioEvent {
             }
             RioEvent::Badge(badge) => {
                 write!(f, "Badge({badge})")
+            }
+            RioEvent::GhostText(text) => {
+                write!(f, "GhostText({text})")
             }
         }
     }

@@ -839,6 +839,17 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                     route.set_window_subtitle(&badge);
                 }
             }
+            RioEventType::Rio(RioEvent::GhostText(text)) => {
+                if let Some(route) = self.router.routes.get_mut(&window_id) {
+                    let grid = route.window.screen.context_manager.current_grid_mut();
+                    if let Some(context_item) = grid.get_mut(window_id.into()) {
+                        let text = if text.is_empty() { None } else { Some(text) };
+                        let ctx = context_item.context_mut();
+                        ctx.renderable_content.ghost_text = text;
+                        ctx.renderable_content.pending_update.set_dirty();
+                    }
+                }
+            }
             _ => {}
         }
     }

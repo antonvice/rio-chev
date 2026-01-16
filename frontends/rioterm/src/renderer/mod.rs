@@ -398,6 +398,41 @@ impl Renderer {
                 }
             }
 
+            // Ghost Text Implementation
+            if has_cursor {
+                if let Some(text) = &renderable_content.ghost_text {
+                    let cursor_col = cursor.state.pos.col;
+                    if column >= cursor_col {
+                        let ghost_index = (column - cursor_col) as usize;
+                        if let Some(ghost_char) = text.chars().nth(ghost_index) {
+                            if square_content == ' ' {
+                                square_content = ghost_char;
+                                style.color = [
+                                    self.named_colors.foreground[0],
+                                    self.named_colors.foreground[1],
+                                    self.named_colors.foreground[2],
+                                    0.4, // 40% opacity for ghost text
+                                ];
+                                style.font_attrs = match style.font_attrs.stretch() {
+                                    rio_backend::sugarloaf::font::Stretch::Expanded => {
+                                        rio_backend::sugarloaf::font::Attributes::new(
+                                            rio_backend::sugarloaf::font::Stretch::Expanded,
+                                            rio_backend::sugarloaf::font::Weight::NORMAL,
+                                            rio_backend::sugarloaf::font::Style::Italic,
+                                        )
+                                    },
+                                    _ => rio_backend::sugarloaf::font::Attributes::new(
+                                        rio_backend::sugarloaf::font::Stretch::NORMAL,
+                                        rio_backend::sugarloaf::font::Weight::NORMAL,
+                                        rio_backend::sugarloaf::font::Style::Italic,
+                                    )
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+
             let has_drawable_char = style.drawable_char.is_some();
             if !has_drawable_char {
                 if let Some((font_id, width)) =

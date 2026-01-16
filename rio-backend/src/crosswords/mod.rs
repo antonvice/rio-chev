@@ -2109,6 +2109,14 @@ impl<U: EventListener> Handler for Crosswords<U> {
     }
 
     #[inline]
+    fn set_ghost_text(&mut self, text: String) {
+        self.event_proxy.send_event(
+            RioEvent::GhostText(text),
+            self.window_id,
+        );
+    }
+
+    #[inline]
     fn configure_charset(
         &mut self,
         index: pos::CharsetIndex,

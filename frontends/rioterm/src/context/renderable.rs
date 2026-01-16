@@ -50,6 +50,7 @@ pub struct RenderableContent {
     pub last_blink_toggle: Option<Instant>,
     pub pending_update: PendingUpdate,
     pub background: Option<BackgroundState>,
+    pub ghost_text: Option<String>,
 }
 
 impl RenderableContent {
@@ -67,6 +68,7 @@ impl RenderableContent {
             pending_update: PendingUpdate::default(),
             is_blinking_cursor_visible: false,
             background: None,
+            ghost_text: None,
         }
     }
 
