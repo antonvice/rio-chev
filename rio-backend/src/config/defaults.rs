@@ -32,6 +32,20 @@ pub fn default_padding_y() -> [f32; 2] {
 
 #[inline]
 pub fn default_shell() -> crate::config::Shell {
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(mut exe_path) = std::env::current_exe() {
+            exe_path.pop();
+            let chev_path = exe_path.join("chev");
+            if chev_path.exists() {
+                return crate::config::Shell {
+                    program: chev_path.to_string_lossy().to_string(),
+                    args: vec![],
+                };
+            }
+        }
+    }
+
     #[cfg(not(target_os = "windows"))]
     {
         crate::config::Shell {

@@ -14,6 +14,8 @@ APP_BINARY = $(TARGET_DIR)/$(TARGET)
 APP_BINARY_DIR = $(TARGET_DIR_OSX)/$(APP_NAME)/Contents/MacOS
 APP_EXTRAS_DIR = $(TARGET_DIR_OSX)/$(APP_NAME)/Contents/Resources
 TERMINFO = $(BUILD_MISC_DIR)/rio.terminfo
+CHEV_DIR = ../chev-shell
+CHEV_BINARY = $(CHEV_DIR)/target/release/chev-shell
 
 all: install run
 
@@ -62,12 +64,17 @@ $(TARGET)-universal:
 	RUSTFLAGS='-C link-arg=-s' MACOSX_DEPLOYMENT_TARGET="11.0" cargo build --release --target=aarch64-apple-darwin
 	@lipo target/{x86_64,aarch64}-apple-darwin/release/$(TARGET) -create -output $(APP_BINARY)
 
+.PHONY: chev
+chev:
+	cd $(CHEV_DIR) && cargo build --release
+
 app-universal: $(APP_NAME)-universal ## Create a universal Rio.app
-$(APP_NAME)-%: $(TARGET)-%
+$(APP_NAME)-%: $(TARGET)-% chev
 	@mkdir -p $(APP_BINARY_DIR)
 	@mkdir -p $(APP_EXTRAS_DIR)
 	@cp -fRp $(APP_TEMPLATE) $(TARGET_DIR_OSX)
 	@cp -fp $(APP_BINARY) $(APP_BINARY_DIR)
+	@cp -fp $(CHEV_BINARY) $(APP_BINARY_DIR)/chev
 	@touch -r "$(APP_BINARY)" "$(TARGET_DIR_OSX)/$(APP_NAME)"
 
 install-terminfo:
