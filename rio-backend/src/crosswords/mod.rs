@@ -2145,6 +2145,13 @@ impl<U: EventListener> Handler for Crosswords<U> {
         );
     }
 
+    fn set_progress_bar(&mut self, fraction: f32, label: String) {
+        self.event_proxy.send_event(
+             RioEvent::ProgressBar { fraction, label },
+             self.window_id,
+        );
+    }
+
     #[inline]
     fn configure_charset(
         &mut self,

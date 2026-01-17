@@ -53,6 +53,7 @@ pub struct RenderableContent {
     pub ghost_text: Option<String>,
     pub minimap_enabled: bool,
     pub background_effect: Option<String>,
+    pub progress_bar: Option<(f32, String)>,
 }
 
 impl RenderableContent {
@@ -73,6 +74,7 @@ impl RenderableContent {
             ghost_text: None,
             minimap_enabled: false,
             background_effect: None,
+            progress_bar: None,
         }
     }
 

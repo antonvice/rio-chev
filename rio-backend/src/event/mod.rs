@@ -180,6 +180,8 @@ pub enum RioEvent {
     MiniMap(bool),
     /// Side-channel background effect
     BackgroundEffect(Option<String>),
+    /// Side-channel progress bar
+    ProgressBar { fraction: f32, label: String },
 
     // No operation
     Noop,
@@ -275,6 +277,9 @@ impl Debug for RioEvent {
             }
             RioEvent::BackgroundEffect(name) => {
                 write!(f, "BackgroundEffect({:?})", name)
+            }
+            RioEvent::ProgressBar { fraction, label } => {
+                write!(f, "ProgressBar({fraction}, {label})")
             }
         }
     }

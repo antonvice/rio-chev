@@ -1165,6 +1165,7 @@ impl Renderer {
         let window_id = context_manager.window_id();
         let event_proxy = context_manager.event_proxy();
         self.render_effects(&mut objects, current_context, window_size, window_id, event_proxy);
+        self.render_progress_bar(&mut objects, current_context, window_size);
         // let _duration = start.elapsed();
 
         // Update visual bell state and set overlay if needed
@@ -1407,6 +1408,52 @@ impl Renderer {
                     size: [window_size.width / 10.0, window_size.height * 0.5],
                     color: [base_color[0], base_color[1], base_color[2], alpha],
                     border_radius: [8.0, 8.0, 0.0, 0.0],
+                    ..Quad::default()
+                }));
+            }
+        }
+    }
+
+    fn render_progress_bar(
+        &self,
+        objects: &mut Vec<Object>,
+        current_context: &crate::context::Context<EventProxy>,
+        window_size: rio_backend::sugarloaf::SugarloafWindowSize,
+    ) {
+        if let Some((fraction, _label)) = &current_context.renderable_content.progress_bar {
+            let width = 300.0;
+            let height = 30.0;
+            let x = (window_size.width - width) / 2.0;
+            let y = window_size.height - height - 40.0; // Bottom center
+
+            // Container background
+            objects.push(Object::Quad(Quad {
+                position: [x, y],
+                size: [width, height],
+                color: [0.05, 0.05, 0.05, 0.8],
+                border_radius: [6.0, 6.0, 6.0, 6.0],
+                ..Quad::default()
+            }));
+
+            // Progress fill
+            let fill_width = width * fraction.clamp(0.0, 1.0);
+            if fill_width > 0.0 {
+                objects.push(Object::Quad(Quad {
+                    position: [x + 2.0, y + 2.0],
+                    size: [(fill_width - 4.0).max(2.0), height - 4.0],
+                    color: [0.1, 0.6, 1.0, 0.9], // Blue
+                    border_radius: [4.0, 4.0, 4.0, 4.0],
+                    ..Quad::default()
+                }));
+            }
+
+            // Text Label (as a Quad for simplicity in this visual prototype, or we could use RichText)
+            // For now, let's just make the bar look "native" and premium with a glow
+            if *fraction > 0.01 {
+                objects.push(Object::Quad(Quad {
+                    position: [x + 2.0, y + 2.0],
+                    size: [(fill_width - 4.0).max(2.0), height - 4.0],
+                    color: [1.0, 1.0, 1.0, 0.2], // White shimmer
                     ..Quad::default()
                 }));
             }

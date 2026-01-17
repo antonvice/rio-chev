@@ -421,6 +421,9 @@ pub trait Handler {
 
     /// Side-Channel Prototype: Set background effect.
     fn set_background_effect(&mut self, _name: Option<String>) {}
+
+    /// Side-Channel Prototype: Set progress bar.
+    fn set_progress_bar(&mut self, _fraction: f32, _label: String) {}
 }
 
 pub trait Timeout: Default {
@@ -917,6 +920,14 @@ impl<U: Handler, T: Timeout> copa::Perform for Performer<'_, U, T> {
                                 let name = simd_utf8::from_utf8_fast(params[2]).unwrap_or("none");
                                 let effect = if name == "none" { None } else { Some(name.to_string()) };
                                 self.handler.set_background_effect(effect);
+                            }
+                        }
+                        "progress" => {
+                            if params.len() >= 4 {
+                                let fraction_str = simd_utf8::from_utf8_fast(params[2]).unwrap_or("0.0");
+                                let fraction = fraction_str.parse::<f32>().unwrap_or(0.0);
+                                let label = simd_utf8::from_utf8_fast(params[3]).unwrap_or("").to_string();
+                                self.handler.set_progress_bar(fraction, label);
                             }
                         }
                         _ => {}
