@@ -186,6 +186,8 @@ pub enum RioEvent {
     Edit(String),
     /// Side-channel request history
     RequestHistory,
+    /// Side-channel audio spectrum
+    Spectrum(Vec<f32>),
 
     // No operation
     Noop,
@@ -290,6 +292,9 @@ impl Debug for RioEvent {
             }
             RioEvent::RequestHistory => {
                 write!(f, "RequestHistory")
+            }
+            RioEvent::Spectrum(data) => {
+                write!(f, "Spectrum({:?})", data)
             }
         }
     }

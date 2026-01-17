@@ -64,6 +64,7 @@ pub struct Renderer {
     // Visual bell state
     visual_bell_active: bool,
     pub matrix_state: Vec<f32>,
+    pub spectrum: Vec<f32>,
     pub effect_start: std::time::Instant,
     visual_bell_start: Option<std::time::Instant>,
     font_context: rio_backend::sugarloaf::font::FontLibrary,
@@ -126,6 +127,7 @@ impl Renderer {
             char_cache: CharCache::new(),
             is_game_mode_enabled: config.renderer.strategy.is_game(),
             matrix_state: Vec::new(),
+            spectrum: Vec::new(),
             effect_start: std::time::Instant::now(),
         };
 
@@ -1317,6 +1319,8 @@ impl Renderer {
             None => return,
         };
 
+        self.spectrum = current_context.renderable_content.spectrum.clone();
+
         match effect.as_str() {
             "matrix" => self.render_matrix_rain(objects, window_size),
             "vibe" => self.render_vibe_waves(objects, window_size),
@@ -1386,28 +1390,56 @@ impl Renderer {
         window_size: rio_backend::sugarloaf::SugarloafWindowSize,
     ) {
         let elapsed = self.effect_start.elapsed().as_secs_f32();
-        let num_waves = 3;
+        let num_waves = 5; // More waves for better spectrum distribution
+        
+        let has_spectrum = !self.spectrum.is_empty();
         
         for i in 0..num_waves {
-            let offset = i as f32 * 2.0;
+            let offset = i as f32 * 1.5;
+            
+            // Map wave to spectrum bins if available
+            let spectrum_intensity = if has_spectrum {
+                let bin_idx = (i * self.spectrum.len() / num_waves).min(self.spectrum.len() - 1);
+                self.spectrum[bin_idx]
+            } else {
+                1.0 // Default idle state
+            };
+
             let base_color = match i {
-                0 => [1.0, 0.1, 0.6], // Pink
+                0 => [1.0, 0.1, 0.6], // Pink (Low)
                 1 => [0.1, 0.6, 1.0], // Blue
-                _ => [0.6, 0.1, 1.0], // Purple
+                2 => [0.6, 0.1, 1.0], // Purple
+                3 => [0.1, 1.0, 0.6], // Green
+                _ => [1.0, 0.7, 0.1], // Orange (High)
             };
             
-            let segments = 30;
+            let segments = 40;
             for slice in 0..segments {
-                let x = (slice as f32 / segments as f32) * window_size.width;
-                let wave_y = (window_size.height * 0.7) + 
-                             (elapsed * 2.0 + offset + (slice as f32 * 0.3)).sin() * 40.0;
+                let x_ratio = slice as f32 / segments as f32;
+                let x = x_ratio * window_size.width;
                 
-                let alpha = 0.08;
+                // Frequency bias: higher waves react more to higher frequencies? 
+                // Actually let's just make the amplitude reactive.
+                let amplitude = 30.0 + (spectrum_intensity * 120.0);
+                let frequency = 1.5 + (spectrum_intensity * 2.0);
+                
+                let wave_y = (window_size.height * 0.65) + 
+                             (elapsed * frequency + offset + (x_ratio * 4.0)).sin() * amplitude;
+                
+                // Color gets brighter/more opaque with intensity
+                let alpha = 0.05 + (spectrum_intensity * 0.15);
+                let brightness = 0.8 + (spectrum_intensity * 0.2);
+                
                 objects.push(Object::Quad(Quad {
                     position: [x, wave_y],
-                    size: [window_size.width / 10.0, window_size.height * 0.5],
-                    color: [base_color[0], base_color[1], base_color[2], alpha],
-                    border_radius: [8.0, 8.0, 0.0, 0.0],
+                    size: [window_size.width / 8.0, window_size.height * 0.6],
+                    color: [
+                        base_color[0] * brightness, 
+                        base_color[1] * brightness, 
+                        base_color[2] * brightness, 
+                        alpha
+                    ],
+                    border_radius: [12.0, 12.0, 0.0, 0.0],
                     ..Quad::default()
                 }));
             }

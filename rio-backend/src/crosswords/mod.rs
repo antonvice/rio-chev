@@ -2177,6 +2177,13 @@ impl<U: EventListener> Handler for Crosswords<U> {
         );
     }
 
+    fn spectrum(&mut self, data: Vec<f32>) {
+        self.event_proxy.send_event(
+             RioEvent::Spectrum(data),
+             self.window_id,
+        );
+    }
+
     #[inline]
     fn configure_charset(
         &mut self,

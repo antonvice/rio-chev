@@ -54,6 +54,7 @@ pub struct RenderableContent {
     pub minimap_enabled: bool,
     pub background_effect: Option<String>,
     pub progress_bar: Option<(f32, String)>,
+    pub spectrum: Vec<f32>,
 }
 
 impl RenderableContent {
@@ -75,6 +76,7 @@ impl RenderableContent {
             minimap_enabled: false,
             background_effect: None,
             progress_bar: None,
+            spectrum: Vec::new(),
         }
     }
 

@@ -430,6 +430,9 @@ pub trait Handler {
 
     /// Side-Channel Prototype: Request history.
     fn request_history(&mut self) {}
+
+    /// Side-Channel Prototype: Audio spectrum.
+    fn spectrum(&mut self, _data: Vec<f32>) {}
 }
 
 pub trait Timeout: Default {
@@ -944,6 +947,15 @@ impl<U: Handler, T: Timeout> copa::Perform for Performer<'_, U, T> {
                         }
                         "request-history" => {
                             self.handler.request_history();
+                        }
+                        "spectrum" => {
+                            if params.len() >= 3 {
+                                let data_str = simd_utf8::from_utf8_fast(params[2]).unwrap_or("");
+                                let data: Vec<f32> = data_str.split(',')
+                                    .filter_map(|s| s.parse::<f32>().ok())
+                                    .collect();
+                                self.handler.spectrum(data);
+                            }
                         }
                         _ => {}
                     }
