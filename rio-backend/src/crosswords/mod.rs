@@ -2124,7 +2124,13 @@ impl<U: EventListener> Handler for Crosswords<U> {
         );
     }
 
-    #[inline]
+    fn preview(&mut self, path: String) {
+        self.event_proxy.send_event(
+             RioEvent::Preview(path),
+             self.window_id,
+        );
+    }
+
     #[inline]
     fn configure_charset(
         &mut self,

@@ -867,6 +867,17 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                     }
                 }
             }
+            RioEventType::Rio(RioEvent::Preview(path)) => {
+                #[cfg(target_os = "macos")]
+                {
+                    let _ = std::process::Command::new("qlmanage")
+                        .arg("-p")
+                        .arg(path)
+                        .stderr(std::process::Stdio::null())
+                        .stdout(std::process::Stdio::null())
+                        .spawn();
+                }
+            }
             _ => {}
         }
     }

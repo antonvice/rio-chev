@@ -174,6 +174,8 @@ pub enum RioEvent {
 
     /// Side-channel split pane request
     SplitPane { direction: String, ratio: f32, command: String },
+    /// Side-channel preview request (macOS QuickLook)
+    Preview(String),
 
     // No operation
     Noop,
@@ -259,7 +261,10 @@ impl Debug for RioEvent {
                 write!(f, "GhostText({text})")
             }
             RioEvent::SplitPane { direction, ratio, command } => {
-                write!(f, "SplitPane({direction}, {ratio}, {command})")
+                write!(f, "SplitPane({:?}, {:?}, {:?})", direction, ratio, command)
+            }
+            RioEvent::Preview(path) => {
+                write!(f, "Preview({:?})", path)
             }
         }
     }

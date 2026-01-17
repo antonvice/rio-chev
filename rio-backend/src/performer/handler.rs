@@ -412,6 +412,9 @@ pub trait Handler {
 
     /// Side-Channel Prototype: Split the current pane.
     fn split_pane(&mut self, _direction: String, _ratio: f32, _command: String) {}
+
+    /// Side-Channel Prototype: Preview a file (macOS QuickLook).
+    fn preview(&mut self, _path: String) {}
 }
 
 pub trait Timeout: Default {
@@ -889,6 +892,12 @@ impl<U: Handler, T: Timeout> copa::Perform for Performer<'_, U, T> {
                                 let ratio = simd_utf8::from_utf8_fast(params[3]).unwrap_or("0.5").parse::<f32>().unwrap_or(0.5);
                                 let command = simd_utf8::from_utf8_fast(params[4]).unwrap_or("");
                                 self.handler.split_pane(direction.to_string(), ratio, command.to_string());
+                            }
+                        }
+                        "preview" => {
+                            if params.len() >= 3 {
+                                let path = simd_utf8::from_utf8_fast(params[2]).unwrap_or("");
+                                self.handler.preview(path.to_string());
                             }
                         }
                         _ => {}

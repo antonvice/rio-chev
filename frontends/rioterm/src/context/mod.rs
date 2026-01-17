@@ -866,10 +866,6 @@ impl<T: EventListener + Clone + std::marker::Send + 'static> ContextManager<T> {
         self.select_tab(target_index);
     }
 
-    pub fn split(&mut self, rich_text_id: usize, split_down: bool) {
-        self.split_with_command(rich_text_id, split_down, 0.5, None);
-    }
-
     pub fn split_with_command(&mut self, rich_text_id: usize, split_down: bool, ratio: f32, command_override: Option<String>) {
         let mut working_dir = self.config.working_dir.clone();
         if self.config.cwd {
