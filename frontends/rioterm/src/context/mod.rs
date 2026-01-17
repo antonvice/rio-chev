@@ -442,6 +442,15 @@ impl<T: EventListener + Clone + std::marker::Send + 'static> ContextManager<T> {
     }
 
     #[inline]
+    pub fn window_id(&self) -> WindowId {
+        self.window_id
+    }
+
+    #[inline]
+    pub fn event_proxy(&self) -> &T {
+        &self.event_proxy
+    }
+
     pub fn should_close_context_manager(&mut self, route_id: usize) -> bool {
         let requires_change_route = self.current_route == route_id;
 

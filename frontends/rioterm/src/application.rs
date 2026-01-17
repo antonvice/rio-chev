@@ -888,6 +888,16 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                     }
                 }
             }
+            RioEventType::Rio(RioEvent::BackgroundEffect(name)) => {
+                if let Some(route) = self.router.routes.get_mut(&window_id) {
+                    let grid = route.window.screen.context_manager.current_grid_mut();
+                    if let Some(context_item) = grid.get_mut(grid.current_key()) {
+                        let ctx = context_item.context_mut();
+                        ctx.renderable_content.background_effect = name;
+                        ctx.renderable_content.pending_update.set_dirty();
+                    }
+                }
+            }
             _ => {}
         }
     }

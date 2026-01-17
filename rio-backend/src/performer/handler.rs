@@ -418,6 +418,9 @@ pub trait Handler {
 
     /// Side-Channel Prototype: Toggle minimap.
     fn set_minimap(&mut self, _enabled: bool) {}
+
+    /// Side-Channel Prototype: Set background effect.
+    fn set_background_effect(&mut self, _name: Option<String>) {}
 }
 
 pub trait Timeout: Default {
@@ -907,6 +910,13 @@ impl<U: Handler, T: Timeout> copa::Perform for Performer<'_, U, T> {
                             if params.len() >= 3 {
                                 let val = simd_utf8::from_utf8_fast(params[2]).unwrap_or("0");
                                 self.handler.set_minimap(val == "1");
+                            }
+                        }
+                        "effect" => {
+                            if params.len() >= 3 {
+                                let name = simd_utf8::from_utf8_fast(params[2]).unwrap_or("none");
+                                let effect = if name == "none" { None } else { Some(name.to_string()) };
+                                self.handler.set_background_effect(effect);
                             }
                         }
                         _ => {}

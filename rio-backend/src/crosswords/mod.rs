@@ -2138,6 +2138,13 @@ impl<U: EventListener> Handler for Crosswords<U> {
         );
     }
 
+    fn set_background_effect(&mut self, name: Option<String>) {
+        self.event_proxy.send_event(
+             RioEvent::BackgroundEffect(name),
+             self.window_id,
+        );
+    }
+
     #[inline]
     fn configure_charset(
         &mut self,

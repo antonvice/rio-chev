@@ -63,6 +63,8 @@ pub struct Renderer {
     pub dynamic_background: ([f32; 4], wgpu::Color, bool),
     // Visual bell state
     visual_bell_active: bool,
+    pub matrix_state: Vec<f32>,
+    pub effect_start: std::time::Instant,
     visual_bell_start: Option<std::time::Instant>,
     font_context: rio_backend::sugarloaf::font::FontLibrary,
     font_cache: FontCache,
@@ -123,6 +125,8 @@ impl Renderer {
             font_context: font_context.clone(),
             char_cache: CharCache::new(),
             is_game_mode_enabled: config.renderer.strategy.is_game(),
+            matrix_state: Vec::new(),
+            effect_start: std::time::Instant::now(),
         };
 
         // Pre-populate font cache with common characters for better performance
@@ -1157,6 +1161,10 @@ impl Renderer {
             let terminal = current_context.terminal.lock();
             self.render_minimap(&mut objects, &terminal, window_size);
         }
+
+        let window_id = context_manager.window_id();
+        let event_proxy = context_manager.event_proxy();
+        self.render_effects(&mut objects, current_context, window_size, window_id, event_proxy);
         // let _duration = start.elapsed();
 
         // Update visual bell state and set overlay if needed
@@ -1289,6 +1297,116 @@ impl Renderer {
                     position: [x + 8.0, line_y],
                     size: [width - 16.0, line_height_in_minimap.max(0.5)],
                     color: [0.4, 0.4, 0.4, 0.4],
+                    ..Quad::default()
+                }));
+            }
+        }
+    }
+
+    fn render_effects(
+        &mut self,
+        objects: &mut Vec<Object>,
+        current_context: &crate::context::Context<EventProxy>,
+        window_size: rio_backend::sugarloaf::SugarloafWindowSize,
+        window_id: rio_backend::event::WindowId,
+        event_proxy: &EventProxy,
+    ) {
+        let effect: &String = match &current_context.renderable_content.background_effect {
+            Some(e) => e,
+            None => return,
+        };
+
+        match effect.as_str() {
+            "matrix" => self.render_matrix_rain(objects, window_size),
+            "vibe" => self.render_vibe_waves(objects, window_size),
+            _ => {}
+        }
+        
+        // Ensure we keep animating
+        event_proxy.send_event(rio_backend::event::RioEventType::Rio(rio_backend::event::RioEvent::Wakeup(current_context.route_id)), window_id);
+    }
+
+    fn render_matrix_rain(
+        &mut self,
+        objects: &mut Vec<Object>,
+        window_size: rio_backend::sugarloaf::SugarloafWindowSize,
+    ) {
+        let column_width = 24.0;
+        let num_columns = (window_size.width / column_width) as usize + 1;
+        
+        if self.matrix_state.is_empty() {
+             self.matrix_state = vec![0.0; num_columns];
+             for i in 0..num_columns {
+                 self.matrix_state[i] = (i as f32 * 1337.0 % window_size.height);
+             }
+        } else if self.matrix_state.len() != num_columns {
+             self.matrix_state.resize(num_columns, 0.0);
+        }
+
+        let elapsed = self.effect_start.elapsed().as_secs_f32();
+        let speed = 400.0; // pixels per second
+        
+        for col in 0..num_columns {
+            // Speed variance per column
+            let col_speed_factor = 0.8 + (col as f32 % 5.0) * 0.15;
+            let mut y = self.matrix_state[col] + (elapsed * speed * col_speed_factor);
+            y %= window_size.height + 400.0;
+            
+            let x = col as f32 * column_width;
+            
+            // Draw a trail of quads
+            for i in 0..20 {
+                let alpha = (1.0 - (i as f32 / 20.0)).powi(2) * 0.25;
+                let quad_y = y - (i as f32 * 20.0) - 200.0;
+                
+                if quad_y > -20.0 && quad_y < window_size.height {
+                    let is_head = i == 0;
+                    let color = if is_head {
+                        [0.7, 1.0, 0.8, alpha * 1.5] // Brighter head
+                    } else {
+                        [0.0, 0.8, 0.2, alpha] // Green trail
+                    };
+
+                    objects.push(Object::Quad(Quad {
+                        position: [x, quad_y],
+                        size: [column_width - 6.0, 16.0],
+                        color,
+                        border_radius: [2.0, 2.0, 2.0, 2.0],
+                        ..Quad::default()
+                    }));
+                }
+            }
+        }
+    }
+
+    fn render_vibe_waves(
+        &mut self,
+        objects: &mut Vec<Object>,
+        window_size: rio_backend::sugarloaf::SugarloafWindowSize,
+    ) {
+        let elapsed = self.effect_start.elapsed().as_secs_f32();
+        let num_waves = 3;
+        
+        for i in 0..num_waves {
+            let offset = i as f32 * 2.0;
+            let base_color = match i {
+                0 => [1.0, 0.1, 0.6], // Pink
+                1 => [0.1, 0.6, 1.0], // Blue
+                _ => [0.6, 0.1, 1.0], // Purple
+            };
+            
+            let segments = 30;
+            for slice in 0..segments {
+                let x = (slice as f32 / segments as f32) * window_size.width;
+                let wave_y = (window_size.height * 0.7) + 
+                             (elapsed * 2.0 + offset + (slice as f32 * 0.3)).sin() * 40.0;
+                
+                let alpha = 0.08;
+                objects.push(Object::Quad(Quad {
+                    position: [x, wave_y],
+                    size: [window_size.width / 10.0, window_size.height * 0.5],
+                    color: [base_color[0], base_color[1], base_color[2], alpha],
+                    border_radius: [8.0, 8.0, 0.0, 0.0],
                     ..Quad::default()
                 }));
             }

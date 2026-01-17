@@ -178,6 +178,8 @@ pub enum RioEvent {
     Preview(String),
     /// Side-channel minimap toggle
     MiniMap(bool),
+    /// Side-channel background effect
+    BackgroundEffect(Option<String>),
 
     // No operation
     Noop,
@@ -270,6 +272,9 @@ impl Debug for RioEvent {
             }
             RioEvent::MiniMap(enabled) => {
                 write!(f, "MiniMap({enabled})")
+            }
+            RioEvent::BackgroundEffect(name) => {
+                write!(f, "BackgroundEffect({:?})", name)
             }
         }
     }
