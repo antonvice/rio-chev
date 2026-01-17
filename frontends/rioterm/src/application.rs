@@ -842,7 +842,7 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
             RioEventType::Rio(RioEvent::GhostText(text)) => {
                 if let Some(route) = self.router.routes.get_mut(&window_id) {
                     let grid = route.window.screen.context_manager.current_grid_mut();
-                    if let Some(context_item) = grid.get_mut(window_id.into()) {
+                    if let Some(context_item) = grid.get_mut(grid.current_key()) {
                         let text = if text.is_empty() { None } else { Some(text) };
                         let ctx = context_item.context_mut();
                         ctx.renderable_content.ghost_text = text;
@@ -866,7 +866,6 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                         route.window.screen.split_right_with_command(ratio, cmd);
                     }
                 }
-            }
             }
             _ => {}
         }

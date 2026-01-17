@@ -402,8 +402,8 @@ impl Renderer {
             if has_cursor {
                 if let Some(text) = &renderable_content.ghost_text {
                     let cursor_col = cursor.state.pos.col;
-                    if column >= cursor_col {
-                        let ghost_index = (column - cursor_col) as usize;
+                    if column >= cursor_col.0 {
+                        let ghost_index = column - cursor_col.0;
                         if let Some(ghost_char) = text.chars().nth(ghost_index) {
                             if square_content == ' ' {
                                 square_content = ghost_char;
@@ -413,18 +413,20 @@ impl Renderer {
                                     self.named_colors.foreground[2],
                                     0.4, // 40% opacity for ghost text
                                 ];
+                                
+                                use rio_backend::sugarloaf::font_introspector::Attributes;
                                 style.font_attrs = match style.font_attrs.stretch() {
-                                    rio_backend::sugarloaf::font::Stretch::Expanded => {
-                                        rio_backend::sugarloaf::font::Attributes::new(
-                                            rio_backend::sugarloaf::font::Stretch::Expanded,
-                                            rio_backend::sugarloaf::font::Weight::NORMAL,
-                                            rio_backend::sugarloaf::font::Style::Italic,
+                                    Stretch::EXPANDED => {
+                                        Attributes::new(
+                                            Stretch::EXPANDED,
+                                            Weight::NORMAL,
+                                            Style::Italic,
                                         )
                                     },
-                                    _ => rio_backend::sugarloaf::font::Attributes::new(
-                                        rio_backend::sugarloaf::font::Stretch::NORMAL,
-                                        rio_backend::sugarloaf::font::Weight::NORMAL,
-                                        rio_backend::sugarloaf::font::Style::Italic,
+                                    _ => Attributes::new(
+                                        Stretch::NORMAL,
+                                        Weight::NORMAL,
+                                        Style::Italic,
                                     )
                                 };
                             }

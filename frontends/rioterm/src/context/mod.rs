@@ -976,9 +976,9 @@ impl<T: EventListener + Clone + std::marker::Send + 'static> ContextManager<T> {
             Ok(new_context) => {
                 let new_route_id = new_context.route_id;
                 if split_down {
-                    self.contexts[self.current_index].split_down(new_context);
+                    self.contexts[self.current_index].split_down(new_context, 0.5);
                 } else {
-                    self.contexts[self.current_index].split_right(new_context);
+                    self.contexts[self.current_index].split_right(new_context, 0.5);
                 }
 
                 self.current_route = new_route_id;
