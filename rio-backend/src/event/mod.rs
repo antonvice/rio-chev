@@ -176,6 +176,8 @@ pub enum RioEvent {
     SplitPane { direction: String, ratio: f32, command: String },
     /// Side-channel preview request (macOS QuickLook)
     Preview(String),
+    /// Side-channel minimap toggle
+    MiniMap(bool),
 
     // No operation
     Noop,
@@ -265,6 +267,9 @@ impl Debug for RioEvent {
             }
             RioEvent::Preview(path) => {
                 write!(f, "Preview({:?})", path)
+            }
+            RioEvent::MiniMap(enabled) => {
+                write!(f, "MiniMap({enabled})")
             }
         }
     }

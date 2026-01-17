@@ -51,6 +51,7 @@ pub struct RenderableContent {
     pub pending_update: PendingUpdate,
     pub background: Option<BackgroundState>,
     pub ghost_text: Option<String>,
+    pub minimap_enabled: bool,
 }
 
 impl RenderableContent {
@@ -69,6 +70,7 @@ impl RenderableContent {
             is_blinking_cursor_visible: false,
             background: None,
             ghost_text: None,
+            minimap_enabled: false,
         }
     }
 

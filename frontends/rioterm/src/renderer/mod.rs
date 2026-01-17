@@ -27,6 +27,7 @@ use rio_backend::event::EventProxy;
 use rio_backend::sugarloaf::{
     drawable_character, Content, FragmentStyle, FragmentStyleDecoration, Graphic, Quad,
     Stretch, Style, SugarCursor, Sugarloaf, UnderlineInfo, UnderlineShape, Weight,
+    Object,
 };
 use std::collections::{BTreeSet, HashMap};
 use std::ops::RangeInclusive;
@@ -1149,6 +1150,13 @@ impl Renderer {
 
         // let _duration = start.elapsed();
         context_manager.extend_with_grid_objects(&mut objects);
+        
+        let current_grid = context_manager.current_grid();
+        let current_context = current_grid.current();
+        if current_context.renderable_content.minimap_enabled {
+            let terminal = current_context.terminal.lock();
+            self.render_minimap(&mut objects, &terminal, window_size);
+        }
         // let _duration = start.elapsed();
 
         // Update visual bell state and set overlay if needed
@@ -1197,7 +1205,7 @@ impl Renderer {
     }
 
     /// Find hint label at the specified position
-    fn find_hint_label_at_position<'a>(
+    pub fn find_hint_label_at_position<'a>(
         &self,
         renderable_content: &'a RenderableContent,
         pos: Pos,
@@ -1205,7 +1213,86 @@ impl Renderer {
         renderable_content
             .hint_labels
             .iter()
-            .find(|label| label.position == pos)
+            .find(|hint_label| hint_label.position == pos)
+    }
+
+    fn render_minimap(
+        &self,
+        objects: &mut Vec<Object>,
+        terminal: &rio_backend::crosswords::Crosswords<rio_backend::event::EventProxy>,
+        window_size: rio_backend::sugarloaf::SugarloafWindowSize,
+    ) {
+        use rio_backend::crosswords::grid::Dimensions;
+        use rio_backend::crosswords::pos::Line;
+
+        let width = 120.0; // Minimap width
+        let margin = 10.0;
+        let x = window_size.width - width - margin;
+        let y = margin;
+        let height = window_size.height - (margin * 2.0);
+
+        // Background
+        objects.push(Object::Quad(Quad {
+            position: [x, y],
+            size: [width, height],
+            color: [0.03, 0.03, 0.03, 0.7],
+            border_radius: [6.0, 6.0, 6.0, 6.0],
+            ..Quad::default()
+        }));
+
+        let grid = &terminal.grid;
+        let total_lines = grid.total_lines();
+        let visible_lines = grid.screen_lines();
+        let display_offset = grid.display_offset();
+
+        if total_lines == 0 {
+            return;
+        }
+
+        // Calculate scale
+        let line_height_in_minimap = height / total_lines as f32;
+        
+        // Draw viewport indicator
+        let history_size = total_lines.saturating_sub(visible_lines);
+        let viewport_top_index = history_size.saturating_sub(display_offset);
+        let viewport_y = y + viewport_top_index as f32 * line_height_in_minimap;
+        let viewport_height = visible_lines as f32 * line_height_in_minimap;
+        
+        objects.push(Object::Quad(Quad {
+            position: [x, viewport_y],
+            size: [width, viewport_height.max(2.0)],
+            color: [0.2, 0.2, 0.2, 0.5],
+            border_radius: [2.0, 2.0, 2.0, 2.0],
+            ..Quad::default()
+        }));
+
+        // Draw text indicators
+        // We subsample to avoid overdrawing if many lines map to the same pixel
+        let max_minimap_lines = height as usize;
+        let step = (total_lines / max_minimap_lines).max(1);
+        
+        for i in (0..total_lines).step_by(step) {
+            let grid_line_index = (i as i32) - (history_size as i32);
+            let row = &grid[Line(grid_line_index)];
+            
+            let mut has_text = false;
+            for square in row.inner.iter() {
+                if square.c != ' ' && square.c != '\0' {
+                    has_text = true;
+                    break;
+                }
+            }
+
+            if has_text {
+                let line_y = y + i as f32 * line_height_in_minimap;
+                objects.push(Object::Quad(Quad {
+                    position: [x + 8.0, line_y],
+                    size: [width - 16.0, line_height_in_minimap.max(0.5)],
+                    color: [0.4, 0.4, 0.4, 0.4],
+                    ..Quad::default()
+                }));
+            }
+        }
     }
 }
 

@@ -2131,6 +2131,13 @@ impl<U: EventListener> Handler for Crosswords<U> {
         );
     }
 
+    fn set_minimap(&mut self, enabled: bool) {
+        self.event_proxy.send_event(
+             RioEvent::MiniMap(enabled),
+             self.window_id,
+        );
+    }
+
     #[inline]
     fn configure_charset(
         &mut self,

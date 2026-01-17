@@ -415,6 +415,9 @@ pub trait Handler {
 
     /// Side-Channel Prototype: Preview a file (macOS QuickLook).
     fn preview(&mut self, _path: String) {}
+
+    /// Side-Channel Prototype: Toggle minimap.
+    fn set_minimap(&mut self, _enabled: bool) {}
 }
 
 pub trait Timeout: Default {
@@ -898,6 +901,12 @@ impl<U: Handler, T: Timeout> copa::Perform for Performer<'_, U, T> {
                             if params.len() >= 3 {
                                 let path = simd_utf8::from_utf8_fast(params[2]).unwrap_or("");
                                 self.handler.preview(path.to_string());
+                            }
+                        }
+                        "minimap" => {
+                            if params.len() >= 3 {
+                                let val = simd_utf8::from_utf8_fast(params[2]).unwrap_or("0");
+                                self.handler.set_minimap(val == "1");
                             }
                         }
                         _ => {}
