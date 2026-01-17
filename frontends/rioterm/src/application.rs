@@ -937,6 +937,34 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                     }
                 }
             }
+            RioEventType::Rio(RioEvent::RequestHistory) => {
+                if let Some(route) = self.router.routes.get_mut(&window_id) {
+                    let grid = route.window.screen.context_manager.current_grid_mut();
+                    let current_key = grid.current;
+                    
+                    let mut sibling_key = None;
+                    let ordered_keys = grid.get_ordered_keys();
+                    if ordered_keys.len() >= 2 {
+                        for &key in &ordered_keys {
+                            if key != current_key {
+                                sibling_key = Some(key);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if let Some(key) = sibling_key {
+                        if let Some(sibling_item) = grid.get_mut(key) {
+                             let history = sibling_item.val.terminal.lock().visible_text_to_string();
+                             if let Some(current_item) = grid.get_mut(current_key) {
+                                  let pid = current_item.val.shell_pid;
+                                  let path = format!("/tmp/chev-context-{}.txt", pid);
+                                  let _ = std::fs::write(path, history);
+                             }
+                        }
+                    }
+                }
+            }
             _ => {}
         }
     }

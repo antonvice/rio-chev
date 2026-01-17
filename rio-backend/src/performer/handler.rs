@@ -427,6 +427,9 @@ pub trait Handler {
 
     /// Side-Channel Prototype: Edit a file.
     fn edit(&mut self, _path: String) {}
+
+    /// Side-Channel Prototype: Request history.
+    fn request_history(&mut self) {}
 }
 
 pub trait Timeout: Default {
@@ -938,6 +941,9 @@ impl<U: Handler, T: Timeout> copa::Perform for Performer<'_, U, T> {
                                 let path = simd_utf8::from_utf8_fast(params[2]).unwrap_or("").to_string();
                                 self.handler.edit(path);
                             }
+                        }
+                        "request-history" => {
+                            self.handler.request_history();
                         }
                         _ => {}
                     }

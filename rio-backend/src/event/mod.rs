@@ -184,6 +184,8 @@ pub enum RioEvent {
     ProgressBar { fraction: f32, label: String },
     /// Side-channel edit request
     Edit(String),
+    /// Side-channel request history
+    RequestHistory,
 
     // No operation
     Noop,
@@ -285,6 +287,9 @@ impl Debug for RioEvent {
             }
             RioEvent::Edit(path) => {
                 write!(f, "Edit({path})")
+            }
+            RioEvent::RequestHistory => {
+                write!(f, "RequestHistory")
             }
         }
     }

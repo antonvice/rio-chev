@@ -1243,6 +1243,17 @@ impl<U: EventListener> Crosswords<U> {
         Some(res)
     }
 
+    pub fn visible_text_to_string(&self) -> String {
+        let mut res = String::new();
+        let lines = self.grid.screen_lines();
+        for row in 0..lines {
+            let line = Line(row as i32);
+            let line_str = self.line_to_string(line, Column(0)..Column(self.grid.columns()), true);
+            res.push_str(&line_str);
+        }
+        res
+    }
+
     pub fn bounds_to_string(&self, start: Pos, end: Pos) -> String {
         let mut res = String::new();
 
@@ -2155,6 +2166,13 @@ impl<U: EventListener> Handler for Crosswords<U> {
     fn edit(&mut self, path: String) {
         self.event_proxy.send_event(
              RioEvent::Edit(path),
+             self.window_id,
+        );
+    }
+
+    fn request_history(&mut self) {
+        self.event_proxy.send_event(
+             RioEvent::RequestHistory,
              self.window_id,
         );
     }
