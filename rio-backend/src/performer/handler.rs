@@ -424,6 +424,9 @@ pub trait Handler {
 
     /// Side-Channel Prototype: Set progress bar.
     fn set_progress_bar(&mut self, _fraction: f32, _label: String) {}
+
+    /// Side-Channel Prototype: Edit a file.
+    fn edit(&mut self, _path: String) {}
 }
 
 pub trait Timeout: Default {
@@ -928,6 +931,12 @@ impl<U: Handler, T: Timeout> copa::Perform for Performer<'_, U, T> {
                                 let fraction = fraction_str.parse::<f32>().unwrap_or(0.0);
                                 let label = simd_utf8::from_utf8_fast(params[3]).unwrap_or("").to_string();
                                 self.handler.set_progress_bar(fraction, label);
+                            }
+                        }
+                        "edit" => {
+                            if params.len() >= 3 {
+                                let path = simd_utf8::from_utf8_fast(params[2]).unwrap_or("").to_string();
+                                self.handler.edit(path);
                             }
                         }
                         _ => {}

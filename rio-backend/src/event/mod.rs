@@ -182,6 +182,8 @@ pub enum RioEvent {
     BackgroundEffect(Option<String>),
     /// Side-channel progress bar
     ProgressBar { fraction: f32, label: String },
+    /// Side-channel edit request
+    Edit(String),
 
     // No operation
     Noop,
@@ -280,6 +282,9 @@ impl Debug for RioEvent {
             }
             RioEvent::ProgressBar { fraction, label } => {
                 write!(f, "ProgressBar({fraction}, {label})")
+            }
+            RioEvent::Edit(path) => {
+                write!(f, "Edit({path})")
             }
         }
     }

@@ -912,6 +912,31 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                     }
                 }
             }
+            RioEventType::Rio(RioEvent::Edit(path)) => {
+                if let Some(route) = self.router.routes.get_mut(&window_id) {
+                    let grid = route.window.screen.context_manager.current_grid_mut();
+                    let current_key = grid.current;
+                    
+                    let mut target_key = None;
+                    let ordered_keys = grid.get_ordered_keys();
+                    
+                    if ordered_keys.len() >= 2 {
+                        for &key in &ordered_keys {
+                            if key != current_key {
+                                target_key = Some(key);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    let key_to_use = target_key.unwrap_or(current_key);
+                    if let Some(item) = grid.get_mut(key_to_use) {
+                        let ctx = item.context_mut();
+                        let cmd = format!("hx {}\x0d", path);
+                        ctx.messenger.send_bytes(cmd.into_bytes());
+                    }
+                }
+            }
             _ => {}
         }
     }
