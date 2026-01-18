@@ -188,6 +188,10 @@ pub enum RioEvent {
     RequestHistory,
     /// Side-channel audio spectrum
     Spectrum(Vec<f32>),
+    /// Side-channel recording state
+    Recording(bool),
+    /// Side-channel write text to PTY
+    Write(String),
 
     // No operation
     Noop,
@@ -295,6 +299,12 @@ impl Debug for RioEvent {
             }
             RioEvent::Spectrum(data) => {
                 write!(f, "Spectrum({:?})", data)
+            }
+            RioEvent::Recording(active) => {
+                write!(f, "Recording({})", active)
+            }
+            RioEvent::Write(text) => {
+                write!(f, "Write({})", text)
             }
         }
     }

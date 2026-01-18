@@ -20,6 +20,7 @@ mod renderer;
 mod router;
 mod scheduler;
 mod screen;
+mod voice;
 mod watcher;
 
 use clap::Parser;

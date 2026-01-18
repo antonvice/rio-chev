@@ -21,6 +21,9 @@ tracing = { workspace = true }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "registry"] }
 wgpu = { workspace = true }
 rio-backend = { workspace = true }
+cpal = "0.15"
+hound = "3.5.1"
+whisper-rs = { version = "0.13", features = ["metal"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

@@ -36,6 +36,8 @@ pub struct Application<'a> {
     router: Router<'a>,
     scheduler: Scheduler,
     app_id: Option<String>,
+    recorder: crate::voice::VoiceRecorder,
+    fn_pressed: bool,
 }
 
 impl Application<'_> {
@@ -73,7 +75,70 @@ impl Application<'_> {
             router,
             scheduler,
             app_id,
+            recorder: crate::voice::VoiceRecorder::new(),
+            fn_pressed: false,
         }
+
+    }
+
+    fn handle_transcription(&mut self, path: std::path::PathBuf, window_id: WindowId) {
+        let proxy = self.event_proxy.clone();
+        
+        std::thread::spawn(move || {
+            use whisper_rs::{WhisperContext, WhisperContextParameters, FullParams, SamplingStrategy};
+
+            // 1. Load Audio
+            let mut reader = match hound::WavReader::open(&path) {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!("Voice: Failed to open WAV: {}", e);
+                    return;
+                }
+            };
+
+            let samples: Vec<f32> = reader.samples::<i16>()
+                .map(|s| s.unwrap_or(0) as f32 / i16::MAX as f32)
+                .collect();
+
+            // 2. Model Path
+            let home = std::env::var("HOME").unwrap_or_default();
+            let model_path = format!("{}/.rio/models/ggml-large-v3-turbo.bin", home);
+            
+            if !std::path::Path::new(&model_path).exists() {
+                tracing::error!("Voice: Model not found at {}. Please download ggml-large-v3-turbo.bin", model_path);
+                return;
+            }
+
+            // 3. Transcription
+            let ctx = match WhisperContext::new_with_params(&model_path, WhisperContextParameters::default()) {
+                Ok(c) => c,
+                Err(e) => {
+                    tracing::error!("Voice: Failed to load context: {}", e);
+                    return;
+                }
+            };
+
+            let mut state = ctx.create_state().expect("Failed to create state");
+            let params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+
+            if let Err(e) = state.full(params, &samples) {
+                tracing::error!("Voice: Transcription failed: {}", e);
+                return;
+            }
+
+            let mut text = String::new();
+            let num_segments = state.full_n_segments().expect("Failed to get segments");
+            for i in 0..num_segments {
+                if let Ok(segment) = state.full_get_segment_text(i) {
+                    text.push_str(&segment);
+                }
+            }
+
+            let text = text.trim().to_string();
+            if !text.is_empty() {
+                proxy.send_event(rio_backend::event::RioEventType::Rio(rio_backend::event::RioEvent::Write(text)), window_id);
+            }
+        });
     }
 
     fn skip_window_event(event: &WindowEvent) -> bool {
@@ -975,6 +1040,25 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                     }
                 }
             }
+            RioEventType::Rio(RioEvent::Recording(active)) => {
+                if let Some(route) = self.router.routes.get_mut(&window_id) {
+                    let grid = route.window.screen.context_manager.current_grid_mut();
+                    if let Some(context_item) = grid.get_mut(grid.current_key()) {
+                        let ctx = context_item.context_mut();
+                        ctx.renderable_content.recording = active;
+                        ctx.renderable_content.pending_update.set_dirty();
+                    }
+                }
+            }
+            RioEventType::Rio(RioEvent::Write(text)) => {
+                if let Some(route) = self.router.routes.get_mut(&window_id) {
+                    let grid = route.window.screen.context_manager.current_grid_mut();
+                    if let Some(context_item) = grid.get_mut(grid.current_key()) {
+                        let ctx = context_item.context_mut();
+                        ctx.messenger.send_write(text.into_bytes());
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -1387,6 +1471,36 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                 }
 
                 route.window.screen.context_manager.set_last_typing();
+
+                // Voice Control: Fn key handling
+                use rio_window::keyboard::{PhysicalKey, KeyCode};
+                if let PhysicalKey::Code(KeyCode::Fn) = key_event.physical_key {
+                    if key_event.state == ElementState::Pressed && !self.fn_pressed {
+                        self.fn_pressed = true;
+                        if let Err(e) = self.recorder.start() {
+                            tracing::error!("Voice: Failed to start recording: {}", e);
+                        } else {
+                            // Signal visual indicator
+                            let proxy = self.event_proxy.clone();
+                            proxy.send_event(RioEventType::Rio(RioEvent::Recording(true)), window_id);
+                        }
+                        return;
+                    } else if key_event.state == ElementState::Released && self.fn_pressed {
+                        self.fn_pressed = false;
+                        let proxy = self.event_proxy.clone();
+                        proxy.send_event(RioEventType::Rio(RioEvent::Recording(false)), window_id);
+                        match self.recorder.stop() {
+                            Ok(path) => {
+                                self.handle_transcription(path, window_id);
+                            }
+                            Err(e) => {
+                                tracing::error!("Voice: Failed to stop recording: {}", e);
+                            }
+                        }
+                        return;
+                    }
+                }
+
                 route.window.screen.process_key_event(&key_event);
 
                 if key_event.state == ElementState::Released

@@ -55,6 +55,7 @@ pub struct RenderableContent {
     pub background_effect: Option<String>,
     pub progress_bar: Option<(f32, String)>,
     pub spectrum: Vec<f32>,
+    pub recording: bool,
 }
 
 impl RenderableContent {
@@ -77,6 +78,7 @@ impl RenderableContent {
             background_effect: None,
             progress_bar: None,
             spectrum: Vec::new(),
+            recording: false,
         }
     }
 

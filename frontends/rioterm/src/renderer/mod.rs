@@ -1168,6 +1168,7 @@ impl Renderer {
         let event_proxy = context_manager.event_proxy();
         self.render_effects(&mut objects, current_context, window_size, window_id, event_proxy);
         self.render_progress_bar(&mut objects, current_context, window_size);
+        self.render_recording_indicator(&mut objects, current_context, window_size);
         // let _duration = start.elapsed();
 
         // Update visual bell state and set overlay if needed
@@ -1489,6 +1490,40 @@ impl Renderer {
                     ..Quad::default()
                 }));
             }
+        }
+    }
+
+    fn render_recording_indicator(
+        &self,
+        objects: &mut Vec<Object>,
+        current_context: &crate::context::Context<EventProxy>,
+        window_size: rio_backend::sugarloaf::SugarloafWindowSize,
+    ) {
+        if current_context.renderable_content.recording {
+            let elapsed = self.effect_start.elapsed().as_secs_f32();
+            let pulse = (elapsed * 5.0).sin() * 0.2 + 0.8; // Pulse 0.6 -> 1.0
+            
+            let radius = 12.0;
+            let x = window_size.width - 60.0;
+            let y = 60.0; // Top right
+            
+            // Outer glow
+            objects.push(Object::Quad(Quad {
+                position: [x - (radius * 1.8 * pulse) / 2.0, y - (radius * 1.8 * pulse) / 2.0],
+                size: [radius * 1.8 * pulse, radius * 1.8 * pulse],
+                color: [1.0, 0.0, 0.0, 0.2 * pulse],
+                border_radius: [radius, radius, radius, radius],
+                ..Quad::default()
+            }));
+
+            // Inner dot
+            objects.push(Object::Quad(Quad {
+                position: [x - radius / 2.0, y - radius / 2.0],
+                size: [radius, radius],
+                color: [1.0, 0.05, 0.05, 1.0],
+                border_radius: [radius / 2.0, radius / 2.0, radius / 2.0, radius / 2.0],
+                ..Quad::default()
+            }));
         }
     }
 }
