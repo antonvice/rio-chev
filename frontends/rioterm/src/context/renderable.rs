@@ -7,6 +7,14 @@ use rio_backend::event::TerminalDamage;
 use rio_backend::selection::SelectionRange;
 use std::time::Instant;
 
+#[derive(Clone, Debug)]
+pub struct HistoryItem {
+    pub command: String,
+    pub status: i32,
+    pub duration: f32,
+    pub timestamp: Instant,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum BackgroundState {
     Set(wgpu::Color),
@@ -56,6 +64,8 @@ pub struct RenderableContent {
     pub progress_bar: Option<(f32, String)>,
     pub spectrum: Vec<f32>,
     pub recording: bool,
+    pub holographic_history_enabled: bool,
+    pub holographic_history: Vec<HistoryItem>,
 }
 
 impl RenderableContent {
@@ -79,6 +89,8 @@ impl RenderableContent {
             progress_bar: None,
             spectrum: Vec::new(),
             recording: false,
+            holographic_history_enabled: false,
+            holographic_history: Vec::new(),
         }
     }
 

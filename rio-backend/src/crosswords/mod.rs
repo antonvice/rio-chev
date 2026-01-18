@@ -2184,6 +2184,20 @@ impl<U: EventListener> Handler for Crosswords<U> {
         );
     }
 
+    fn holographic_history(&mut self, enabled: bool) {
+        self.event_proxy.send_event(
+             RioEvent::HolographicHistory(enabled),
+             self.window_id,
+        );
+    }
+
+    fn history_add(&mut self, command: String, status: i32, duration: f32) {
+        self.event_proxy.send_event(
+             RioEvent::HistoryAdd { command, status, duration },
+             self.window_id,
+        );
+    }
+
     #[inline]
     fn configure_charset(
         &mut self,

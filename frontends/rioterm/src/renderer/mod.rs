@@ -70,6 +70,7 @@ pub struct Renderer {
     font_context: rio_backend::sugarloaf::font::FontLibrary,
     font_cache: FontCache,
     char_cache: CharCache,
+    holographic_history_id: Option<usize>,
 }
 
 impl Renderer {
@@ -125,6 +126,7 @@ impl Renderer {
             font_cache: FontCache::new(),
             font_context: font_context.clone(),
             char_cache: CharCache::new(),
+            holographic_history_id: None,
             is_game_mode_enabled: config.renderer.strategy.is_game(),
             matrix_state: Vec::new(),
             spectrum: Vec::new(),
@@ -789,6 +791,58 @@ impl Renderer {
     pub fn color(&self, color: usize, term_colors: &TermColors) -> ColorArray {
         term_colors[color].unwrap_or(self.colors[color])
     }
+    
+    #[inline]
+    fn update_history_rich_text(
+        &mut self,
+        content: &mut Content,
+        history: &[crate::context::renderable::HistoryItem],
+    ) {
+        if self.holographic_history_id.is_none() {
+            self.holographic_history_id = Some(content.add_rich_text());
+        }
+
+        if let Some(history_id) = self.holographic_history_id {
+            let style = FragmentStyle {
+                color: self.named_colors.foreground,
+                ..FragmentStyle::default()
+            };
+            
+            let bold_style = FragmentStyle {
+                color: self.named_colors.foreground,
+                font_attrs: (Stretch::Normal, Style::Normal, Weight::Bold),
+                ..FragmentStyle::default()
+            };
+
+            let line = content.sel(history_id);
+            line.clear();
+            
+            // Render last 10-15 items to avoid overflow
+            let start_idx = history.len().saturating_sub(15);
+            for item in &history[start_idx..] {
+                line.new_line();
+                
+                let status_color = if item.status == 0 {
+                    [0.0, 1.0, 0.0, 1.0] // Green
+                } else {
+                    [1.0, 0.0, 0.0, 1.0] // Red
+                };
+
+                line.add_text("• ", FragmentStyle { color: status_color, ..style });
+                line.add_text(&item.command, bold_style);
+                line.add_text(&format!(" ({:.2}s)", item.duration), FragmentStyle {
+                    color: [
+                        self.named_colors.foreground[0],
+                        self.named_colors.foreground[1],
+                        self.named_colors.foreground[2],
+                        0.5,
+                    ],
+                    ..style
+                });
+            }
+            line.build();
+        }
+    }
 
     #[inline]
     fn update_search_rich_text(&mut self, content: &mut Content) {
@@ -1153,6 +1207,10 @@ impl Renderer {
             self.search.active_search = None;
             self.search.rich_text_id = None;
         }
+        
+        if current_context.renderable_content.holographic_history_enabled {
+            self.update_history_rich_text(sugarloaf.content(), &current_context.renderable_content.holographic_history);
+        }
 
         // let _duration = start.elapsed();
         context_manager.extend_with_grid_objects(&mut objects);
@@ -1169,6 +1227,7 @@ impl Renderer {
         self.render_effects(&mut objects, current_context, window_size, window_id, event_proxy);
         self.render_progress_bar(&mut objects, current_context, window_size);
         self.render_recording_indicator(&mut objects, current_context, window_size);
+        self.render_holographic_history(&mut objects, current_context, window_size);
         // let _duration = start.elapsed();
 
         // Update visual bell state and set overlay if needed
@@ -1500,30 +1559,56 @@ impl Renderer {
         window_size: rio_backend::sugarloaf::SugarloafWindowSize,
     ) {
         if current_context.renderable_content.recording {
-            let elapsed = self.effect_start.elapsed().as_secs_f32();
-            let pulse = (elapsed * 5.0).sin() * 0.2 + 0.8; // Pulse 0.6 -> 1.0
-            
+            let time = self.effect_start.elapsed().as_secs_f32();
+            let pulse = (time * 5.0).sin() * 0.2 + 0.8;
             let radius = 12.0;
             let x = window_size.width - 60.0;
-            let y = 60.0; // Top right
-            
-            // Outer glow
-            objects.push(Object::Quad(Quad {
-                position: [x - (radius * 1.8 * pulse) / 2.0, y - (radius * 1.8 * pulse) / 2.0],
-                size: [radius * 1.8 * pulse, radius * 1.8 * pulse],
-                color: [1.0, 0.0, 0.0, 0.2 * pulse],
-                border_radius: [radius, radius, radius, radius],
-                ..Quad::default()
-            }));
+            let y = 60.0;
 
             // Inner dot
             objects.push(Object::Quad(Quad {
                 position: [x - radius / 2.0, y - radius / 2.0],
                 size: [radius, radius],
-                color: [1.0, 0.05, 0.05, 1.0],
-                border_radius: [radius / 2.0, radius / 2.0, radius / 2.0, radius / 2.0],
+                color: [1.0, 0.05, 0.05, pulse],
                 ..Quad::default()
             }));
+        }
+    }
+
+    fn render_holographic_history(
+        &self,
+        objects: &mut Vec<Object>,
+        current_context: &crate::context::Context<EventProxy>,
+        window_size: rio_backend::sugarloaf::SugarloafWindowSize,
+    ) {
+        if current_context.renderable_content.holographic_history_enabled {
+            let width = 300.0;
+            let x = window_size.width - width;
+            let height = window_size.height;
+            
+            // Sidebar background
+            objects.push(Object::Quad(Quad {
+                position: [x, 0.0],
+                size: [width, height],
+                color: [0.0, 0.0, 0.0, 0.9],
+                ..Quad::default()
+            }));
+
+            // Vertical line
+            objects.push(Object::Quad(Quad {
+                position: [x + 20.0, 0.0],
+                size: [2.0, height],
+                color: [1.0, 1.0, 1.0, 0.1],
+                ..Quad::default()
+            }));
+
+            if let Some(history_id) = self.holographic_history_id {
+                objects.push(Object::RichText(rio_backend::sugarloaf::RichText {
+                    id: history_id,
+                    position: [x + 30.0, 40.0],
+                    lines: None,
+                }));
+            }
         }
     }
 }

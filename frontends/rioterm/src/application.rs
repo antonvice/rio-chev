@@ -1059,6 +1059,34 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                     }
                 }
             }
+            RioEventType::Rio(RioEvent::HolographicHistory(enabled)) => {
+                if let Some(route) = self.router.routes.get_mut(&window_id) {
+                    let grid = route.window.screen.context_manager.current_grid_mut();
+                    if let Some(context_item) = grid.get_mut(grid.current_key()) {
+                        let ctx = context_item.context_mut();
+                        ctx.renderable_content.holographic_history_enabled = enabled;
+                        ctx.renderable_content.pending_update.set_dirty();
+                    }
+                }
+            }
+            RioEventType::Rio(RioEvent::HistoryAdd { command, status, duration }) => {
+                if let Some(route) = self.router.routes.get_mut(&window_id) {
+                    let grid = route.window.screen.context_manager.current_grid_mut();
+                    if let Some(context_item) = grid.get_mut(grid.current_key()) {
+                        let ctx = context_item.context_mut();
+                        ctx.renderable_content.holographic_history.push(crate::context::renderable::HistoryItem {
+                            command,
+                            status,
+                            duration,
+                            timestamp: std::time::Instant::now(),
+                        });
+                        if ctx.renderable_content.holographic_history.len() > 50 {
+                            ctx.renderable_content.holographic_history.remove(0);
+                        }
+                        ctx.renderable_content.pending_update.set_dirty();
+                    }
+                }
+            }
             _ => {}
         }
     }

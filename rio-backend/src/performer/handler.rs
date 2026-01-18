@@ -433,6 +433,8 @@ pub trait Handler {
 
     /// Side-Channel Prototype: Audio spectrum.
     fn spectrum(&mut self, _data: Vec<f32>) {}
+    fn holographic_history(&mut self, _enabled: bool) {}
+    fn history_add(&mut self, _command: String, _status: i32, _duration: f32) {}
 }
 
 pub trait Timeout: Default {
@@ -952,9 +954,23 @@ impl<U: Handler, T: Timeout> copa::Perform for Performer<'_, U, T> {
                             if params.len() >= 3 {
                                 let data_str = simd_utf8::from_utf8_fast(params[2]).unwrap_or("");
                                 let data: Vec<f32> = data_str.split(',')
-                                    .filter_map(|s| s.parse::<f32>().ok())
+                                    .filter_map(|s| s.parse().ok())
                                     .collect();
                                 self.handler.spectrum(data);
+                            }
+                        }
+                        "history-toggle" => {
+                            if params.len() >= 3 {
+                                let val = simd_utf8::from_utf8_fast(params[2]).unwrap_or("0");
+                                self.handler.holographic_history(val == "1");
+                            }
+                        }
+                        "history-add" => {
+                            if params.len() >= 5 {
+                                let command = simd_utf8::from_utf8_fast(params[2]).unwrap_or("").to_string();
+                                let status = simd_utf8::from_utf8_fast(params[3]).unwrap_or("0").parse::<i32>().unwrap_or(0);
+                                let duration = simd_utf8::from_utf8_fast(params[4]).unwrap_or("0.0").parse::<f32>().unwrap_or(0.0);
+                                self.handler.history_add(command, status, duration);
                             }
                         }
                         _ => {}

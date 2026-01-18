@@ -192,6 +192,10 @@ pub enum RioEvent {
     Recording(bool),
     /// Side-channel write text to PTY
     Write(String),
+    /// Holographic history toggle
+    HolographicHistory(bool),
+    /// Add item to holographic history
+    HistoryAdd { command: String, status: i32, duration: f32 },
 
     // No operation
     Noop,
@@ -305,6 +309,12 @@ impl Debug for RioEvent {
             }
             RioEvent::Write(text) => {
                 write!(f, "Write({})", text)
+            }
+            RioEvent::HolographicHistory(enabled) => {
+                write!(f, "HolographicHistory({})", enabled)
+            }
+            RioEvent::HistoryAdd { command, status, duration } => {
+                write!(f, "HistoryAdd {{ command: {}, status: {}, duration: {} }}", command, status, duration)
             }
         }
     }
