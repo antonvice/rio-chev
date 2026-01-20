@@ -31,6 +31,11 @@ pub fn default_padding_y() -> [f32; 2] {
 }
 
 #[inline]
+pub fn default_padding_x() -> f32 {
+    10.0
+}
+
+#[inline]
 pub fn default_shell() -> crate::config::Shell {
     #[cfg(target_os = "macos")]
     {
@@ -83,7 +88,7 @@ pub fn default_working_dir() -> Option<String> {
 
 #[inline]
 pub fn default_opacity() -> f32 {
-    1.0
+    0.5
 }
 
 #[inline]

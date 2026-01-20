@@ -12,6 +12,7 @@ pub struct HistoryItem {
     pub command: String,
     pub status: i32,
     pub duration: f32,
+    #[allow(dead_code)]
     pub timestamp: Instant,
 }
 

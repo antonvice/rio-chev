@@ -66,7 +66,7 @@ impl VoiceRecorder {
             let default_config: cpal::StreamConfig = device.default_input_config().unwrap().into();
             device.build_input_stream(
                 &default_config,
-                move |data: &[f32], _: &_| {
+                move |_data: &[f32], _: &_| {
                     // Simple downsampling/mono conversion would go here if needed
                     // For now, let's stick to 16k and see if it works
                 },

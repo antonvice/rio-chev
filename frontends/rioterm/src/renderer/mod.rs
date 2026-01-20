@@ -25,7 +25,7 @@ use rio_backend::config::colors::{
 use rio_backend::config::Config;
 use rio_backend::event::EventProxy;
 use rio_backend::sugarloaf::{
-    drawable_character, Content, FragmentStyle, FragmentStyleDecoration, Graphic, Quad,
+    drawable_character, Attributes, Content, FragmentStyle, FragmentStyleDecoration, Graphic, Quad,
     Stretch, Style, SugarCursor, Sugarloaf, UnderlineInfo, UnderlineShape, Weight,
     Object,
 };
@@ -759,6 +759,12 @@ impl Renderer {
         self.is_vi_mode_enabled = is_vi_mode_enabled;
     }
 
+    #[inline]
+    pub fn update_opacity(&mut self, opacity: f32) {
+        self.dynamic_background.1.a = opacity as f64;
+        self.dynamic_background.2 = opacity < 1.0;
+    }
+
     /// Trigger the visual bell
     #[inline]
     pub fn trigger_visual_bell(&mut self) {
@@ -795,14 +801,15 @@ impl Renderer {
     #[inline]
     fn update_history_rich_text(
         &mut self,
-        content: &mut Content,
+        sugarloaf: &mut Sugarloaf,
         history: &[crate::context::renderable::HistoryItem],
     ) {
         if self.holographic_history_id.is_none() {
-            self.holographic_history_id = Some(content.add_rich_text());
+            self.holographic_history_id = Some(sugarloaf.create_rich_text());
         }
 
         if let Some(history_id) = self.holographic_history_id {
+            let content = sugarloaf.content();
             let style = FragmentStyle {
                 color: self.named_colors.foreground,
                 ..FragmentStyle::default()
@@ -810,7 +817,7 @@ impl Renderer {
             
             let bold_style = FragmentStyle {
                 color: self.named_colors.foreground,
-                font_attrs: (Stretch::Normal, Style::Normal, Weight::Bold),
+                font_attrs: Attributes::new(Stretch::NORMAL, Weight::BOLD, Style::Normal),
                 ..FragmentStyle::default()
             };
 
@@ -1180,7 +1187,14 @@ impl Renderer {
             }
         }
 
+        let current_grid = context_manager.current_grid();
+        let current_context = current_grid.current();
+
         self.update_search_rich_text(sugarloaf.content());
+
+        if current_context.renderable_content.holographic_history_enabled {
+            self.update_history_rich_text(sugarloaf, &current_context.renderable_content.holographic_history);
+        }
 
         let window_size = sugarloaf.window_size();
         let scale_factor = sugarloaf.scale_factor();
@@ -1207,16 +1221,10 @@ impl Renderer {
             self.search.active_search = None;
             self.search.rich_text_id = None;
         }
-        
-        if current_context.renderable_content.holographic_history_enabled {
-            self.update_history_rich_text(sugarloaf.content(), &current_context.renderable_content.holographic_history);
-        }
 
         // let _duration = start.elapsed();
         context_manager.extend_with_grid_objects(&mut objects);
         
-        let current_grid = context_manager.current_grid();
-        let current_context = current_grid.current();
         if current_context.renderable_content.minimap_enabled {
             let terminal = current_context.terminal.lock();
             self.render_minimap(&mut objects, &terminal, window_size);
@@ -1402,7 +1410,7 @@ impl Renderer {
         if self.matrix_state.is_empty() {
              self.matrix_state = vec![0.0; num_columns];
              for i in 0..num_columns {
-                 self.matrix_state[i] = (i as f32 * 1337.0 % window_size.height);
+                 self.matrix_state[i] = i as f32 * 1337.0 % window_size.height;
              }
         } else if self.matrix_state.len() != num_columns {
              self.matrix_state.resize(num_columns, 0.0);

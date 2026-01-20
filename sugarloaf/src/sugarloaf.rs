@@ -155,7 +155,7 @@ impl Sugarloaf<'_> {
             layer_brush,
             quad_brush,
             ctx,
-            background_color: Some(wgpu::Color::BLACK),
+            background_color: None,
             background_image: None,
             rich_text_brush,
             graphics: Graphics::default(),

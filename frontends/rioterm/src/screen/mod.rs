@@ -1163,6 +1163,10 @@ impl Screen<'_> {
                         self.context_manager.switch_to_prev();
                         self.render();
                     }
+                    Act::SelectAll => {
+                        self.select_all();
+                        self.render();
+                    }
                     Act::ReceiveChar | Act::None => (),
                     _ => (),
                 }
@@ -1170,6 +1174,26 @@ impl Screen<'_> {
         }
 
         ignore_chars.unwrap_or(false)
+    }
+
+    pub fn select_all(&mut self) {
+        let current = self.context_manager.current_mut();
+        let mut terminal = current.terminal.lock();
+        let start = terminal.grid.topmost_line();
+        let end = terminal.grid.bottommost_line();
+        let cols = terminal.grid.columns();
+
+        let start_pos = Pos::new(start, Column(0));
+        let end_pos = Pos::new(end, Column(cols.saturating_sub(1)));
+
+        let mut selection = Selection::new(SelectionType::Simple, start_pos, Side::Left);
+        selection.update(end_pos, Side::Right);
+        let selection_range = selection.to_range(&terminal);
+        terminal.selection = Some(selection);
+        drop(terminal);
+
+        current.set_selection(selection_range);
+        self.context_manager.request_render();
     }
 
     pub fn split_right_with_config(&mut self, config: rio_backend::config::Config) {

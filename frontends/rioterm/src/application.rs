@@ -886,6 +886,7 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                 }
             }
             RioEventType::Rio(RioEvent::WindowOpacity(opacity)) => {
+                self.config.window.opacity = opacity;
                 if let Some(route) = self.router.routes.get_mut(&window_id) {
                     #[cfg(target_os = "macos")]
                     {
@@ -897,6 +898,8 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                             opacity as f64,
                         );
                     }
+                    route.window.screen.renderer.update_opacity(opacity);
+                    route.window.screen.context_manager.request_render();
                 }
             }
             RioEventType::Rio(RioEvent::Badge(badge)) => {

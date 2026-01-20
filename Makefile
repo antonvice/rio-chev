@@ -1,5 +1,12 @@
 .PHONY: docs
 
+ARCH = $(shell uname -m)
+ifeq ($(ARCH),arm64)
+	NATIVE_TARGET = aarch64-apple-darwin
+else
+	NATIVE_TARGET = x86_64-apple-darwin
+endif
+
 BUILD_MISC_DIR = misc
 DOCS_DIR = docs
 TARGET = rio
@@ -15,7 +22,7 @@ APP_BINARY_DIR = $(TARGET_DIR_OSX)/$(APP_NAME)/Contents/MacOS
 APP_EXTRAS_DIR = $(TARGET_DIR_OSX)/$(APP_NAME)/Contents/Resources
 TERMINFO = $(BUILD_MISC_DIR)/rio.terminfo
 CHEV_DIR = ../chev-shell
-CHEV_BINARY = $(CHEV_DIR)/target/release/chev-shell
+CHEV_BINARY = $(CHEV_DIR)/target/release/chev
 
 all: install run
 
@@ -64,11 +71,16 @@ $(TARGET)-universal:
 	RUSTFLAGS='-C link-arg=-s' MACOSX_DEPLOYMENT_TARGET="11.0" cargo build --release --target=aarch64-apple-darwin
 	@lipo target/{x86_64,aarch64}-apple-darwin/release/$(TARGET) -create -output $(APP_BINARY)
 
+$(TARGET)-native:
+	RUSTFLAGS='-C link-arg=-s' cargo build --release --target=$(NATIVE_TARGET)
+	@cp target/$(NATIVE_TARGET)/release/$(TARGET) $(APP_BINARY)
+
 .PHONY: chev
 chev:
 	cd $(CHEV_DIR) && cargo build --release
 
 app-universal: $(APP_NAME)-universal ## Create a universal Rio.app
+app-native: $(APP_NAME)-native ## Create a native Rio.app
 $(APP_NAME)-%: $(TARGET)-% chev
 	@mkdir -p $(APP_BINARY_DIR)
 	@mkdir -p $(APP_EXTRAS_DIR)
@@ -104,9 +116,9 @@ release-macos-signed-app:
 	@unzip ./release/Rio-v$(version).zip -d ./release
 	@echo "Please verify if 'Rio.App/Contents/Resources/72/rio' exists before create-dmg"
 
-install-macos: release-macos
+install-macos: app-native
 	rm -rf /Applications/$(APP_NAME)
-	mv ./release/$(APP_NAME) /Applications/
+	mv ./target/release/osx/$(APP_NAME) /Applications/
 
 version-not-found:
 	@echo "Rio version was not specified"

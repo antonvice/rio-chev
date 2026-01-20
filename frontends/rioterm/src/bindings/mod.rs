@@ -264,6 +264,7 @@ impl From<String> for Action {
             "movedividerright" => Some(Action::MoveDividerRight),
             "togglevimode" => Some(Action::ToggleViMode),
             "togglefullscreen" => Some(Action::ToggleFullscreen),
+            "selectall" => Some(Action::SelectAll),
             "none" => Some(Action::None),
             _ => None,
         };
@@ -499,6 +500,9 @@ pub enum Action {
 
     /// Allow receiving char input.
     ReceiveChar,
+
+    /// Select all text
+    SelectAll,
 
     /// No action.
     None,
@@ -1001,6 +1005,9 @@ pub fn platform_key_bindings(
         "q", ModifiersState::SUPER; Action::Quit;
         "n", ModifiersState::SUPER; Action::WindowCreateNew;
         ",", ModifiersState::SUPER; Action::ConfigEditor;
+        "a", ModifiersState::SUPER, ~BindingMode::VI; Action::SelectAll;
+        Key::Named(Backspace), ModifiersState::SUPER, ~BindingMode::VI; Action::Esc("\x15".into());
+        Key::Named(Delete), ModifiersState::SUPER, ~BindingMode::VI; Action::Esc("\x15".into());
 
         // Search
         "f", ModifiersState::SUPER, ~BindingMode::SEARCH; Action::SearchForward;
