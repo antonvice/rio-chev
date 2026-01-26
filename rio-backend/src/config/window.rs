@@ -71,6 +71,22 @@ pub enum WindowsCornerPreference {
     RoundSmall = 3,
 }
 
+fn default_background_image() -> Option<ImageProperties> {
+    let home = dirs::home_dir().unwrap_or_default();
+    let bg_path = home.join(".rio/background.jpg");
+    if bg_path.exists() {
+         Some(ImageProperties {
+            path: bg_path.to_string_lossy().to_string(),
+            width: None,
+            height: None,
+            x: 0.0,
+            y: 0.0,
+        })
+    } else {
+        None
+    }
+}
+
 #[derive(PartialEq, Serialize, Deserialize, Clone, Debug)]
 pub struct Window {
     #[serde(default = "default_window_width")]
@@ -83,7 +99,7 @@ pub struct Window {
     pub opacity: f32,
     #[serde(default = "bool::default")]
     pub blur: bool,
-    #[serde(rename = "background-image", skip_serializing)]
+    #[serde(rename = "background-image", skip_serializing, default = "default_background_image")]
     pub background_image: Option<ImageProperties>,
     #[serde(default = "Decorations::default")]
     pub decorations: Decorations,
@@ -108,26 +124,12 @@ pub struct Window {
 
 impl Default for Window {
     fn default() -> Window {
-        let home = dirs::home_dir().unwrap_or_default();
-        let bg_path = home.join(".rio/background.jpg");
-        let background_image = if bg_path.exists() {
-             Some(ImageProperties {
-                path: bg_path.to_string_lossy().to_string(),
-                width: 0.0,
-                height: 0.0,
-                x: 0.0,
-                y: 0.0,
-            })
-        } else {
-            None
-        };
-
         Window {
             width: default_window_width(),
             height: default_window_height(),
             mode: WindowMode::default(),
             opacity: 1.0,
-            background_image,
+            background_image: default_background_image(),
             decorations: Decorations::default(),
             blur: false,
             macos_use_unified_titlebar: false,
