@@ -2230,7 +2230,13 @@ impl<U: EventListener> Handler for Crosswords<U> {
         match action {
             'A' => {
                 // Prompt Started
-                let block = Block::new(BlockType::Prompt, current_line);
+                // Prompt Started
+                let mut block = Block::new(BlockType::Prompt, current_line);
+                for param in &params {
+                    if param.starts_with("context=") {
+                        block.context = Some(param.replace("context=", ""));
+                    }
+                }
                 self.blocks.push(block);
             }
             'B' => {

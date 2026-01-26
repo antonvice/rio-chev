@@ -196,6 +196,8 @@ pub enum RioEvent {
     HolographicHistory(bool),
     /// Add item to holographic history
     HistoryAdd { command: String, status: i32, duration: f32 },
+    /// Side-channel compute request (GPU Offload)
+    ComputeRequest { id: u64, operation: String, data: Vec<u8> },
 
     // No operation
     Noop,
@@ -315,6 +317,9 @@ impl Debug for RioEvent {
             }
             RioEvent::HistoryAdd { command, status, duration } => {
                 write!(f, "HistoryAdd {{ command: {}, status: {}, duration: {} }}", command, status, duration)
+            }
+            RioEvent::ComputeRequest { id, operation, .. } => {
+                write!(f, "ComputeRequest {{ id: {}, operation: {} }}", id, operation)
             }
         }
     }

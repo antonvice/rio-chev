@@ -13,6 +13,7 @@ pub struct Block {
     pub start_line: Line,
     pub end_line: Option<Line>,
     pub exit_code: Option<i32>,
+    pub context: Option<String>,
 }
 
 impl Block {
@@ -22,6 +23,7 @@ impl Block {
             start_line,
             end_line: None,
             exit_code: None,
+            context: None,
         }
     }
 }

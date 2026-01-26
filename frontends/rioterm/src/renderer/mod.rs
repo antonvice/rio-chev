@@ -1702,18 +1702,17 @@ impl Renderer {
             let y = content_y + (visible_start as f32 * char_height);
 
             if is_user_input {
-                // USER BUBBLE (Left side)
-                // Looks like "Me" sending a message
-                // Constrain width to look like a message
-                let bubble_width = (max_width * 0.75).min(max_width);
-                let bg_color = [0.1, 0.3, 0.4, 0.2]; // Subtle Teal/Blue
-                let border_color = [0.43, 0.82, 0.76, 0.3]; // Teal border
+                // USER BUBBLE (Full Width for Cyberpunk look)
+                let bubble_width = max_width;
+                // Dark background to make text pop against the image
+                let bg_color = [0.08, 0.08, 0.08, 0.85]; 
+                let border_color = [0.43, 0.82, 0.76, 0.4]; // Teal border
                 
                 objects.push(Object::Quad(Quad {
                     position: [content_x, y],
                     size: [bubble_width, block_height],
                     color: bg_color,
-                    border_radius: [12.0, 12.0, 12.0, 2.0], // "Chat bubble" shape
+                    border_radius: [4.0, 4.0, 4.0, 4.0],
                     border_width: 1.0,
                     border_color,
                     ..Quad::default()
@@ -1722,19 +1721,16 @@ impl Renderer {
                 // "Me" indicator strip on left
                 objects.push(Object::Quad(Quad {
                     position: [content_x, y + 2.0],
-                    size: [2.0, block_height - 4.0],
-                    color: [0.43, 0.82, 0.76, 0.8], // Teal accent
+                    size: [3.0, block_height - 4.0],
+                    color: [0.43, 0.82, 0.76, 1.0], // Solid Teal accent
                     border_radius: [2.0, 2.0, 2.0, 2.0],
                     ..Quad::default()
                 }));
 
             } else {
                 // SYSTEM/OUTPUT BUBBLE
-                // "output on right side" -> We style it distinctly. 
-                // We'll give it a distinct background and an indicator on the RIGHT to signify "Received".
-                
                 let bubble_width = max_width; 
-                let x_pos = content_x; // Must start at content_x to cover text
+                let x_pos = content_x;
 
                 // Check for error
                  let mut is_error = false;
@@ -1745,27 +1741,27 @@ impl Renderer {
                 }
                 
                 let bg_color = if is_error {
-                     [0.3, 0.1, 0.1, 0.15] // Red tint
+                     [0.2, 0.05, 0.05, 0.7] // Red tint
                 } else {
-                     [0.15, 0.15, 0.15, 0.15] // Dark Gray tint
+                     [0.02, 0.02, 0.02, 0.6] // Almost clear, slight dark tint
                 };
 
                 objects.push(Object::Quad(Quad {
                     position: [x_pos, y],
                     size: [bubble_width, block_height],
                     color: bg_color,
-                    border_radius: [2.0, 12.0, 12.0, 12.0], 
+                    border_radius: [4.0, 4.0, 4.0, 4.0], 
                     border_width: 0.0,
                     ..Quad::default() 
                 }));
                 
                 // "Received" indicator strip on the RIGHT
-                let strip_color = if is_error { [0.8, 0.3, 0.3, 0.8] } else { [0.5, 0.5, 0.5, 0.5] };
+                let strip_color = if is_error { [0.8, 0.3, 0.3, 0.8] } else { [0.3, 0.3, 0.3, 0.5] };
                  objects.push(Object::Quad(Quad {
                     position: [content_x + bubble_width - 3.0, y],
                     size: [3.0, block_height],
                     color: strip_color,
-                    border_radius: [0.0, 4.0, 4.0, 0.0],
+                    border_radius: [0.0, 2.0, 2.0, 0.0],
                     ..Quad::default()
                 }));
             }

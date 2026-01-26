@@ -597,7 +597,18 @@ impl Default for Config {
             editor: default_editor(),
             adaptive_theme: None,
             adaptive_colors: None,
-            bindings: Bindings::default(),
+            bindings: Bindings {
+                keys: vec![
+                     // Cmd+Shift+E -> Custom Escape Sequence for "Git Pane"
+                     crate::config::bindings::KeyBinding { 
+                        key: "e".to_string(), 
+                        with: "super | shift".to_string(), 
+                        action: String::new(),
+                        esc: "\x1b[24;5~".to_string(),
+                        mode: String::new(),
+                    }
+                ],
+            },
             colors: Colors::default(),
             scroll: Scroll::default(),
             keyboard: Keyboard::default(),

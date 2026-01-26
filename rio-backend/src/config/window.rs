@@ -108,12 +108,26 @@ pub struct Window {
 
 impl Default for Window {
     fn default() -> Window {
+        let home = dirs::home_dir().unwrap_or_default();
+        let bg_path = home.join(".rio/background.jpg");
+        let background_image = if bg_path.exists() {
+             Some(ImageProperties {
+                path: bg_path.to_string_lossy().to_string(),
+                width: 0.0,
+                height: 0.0,
+                x: 0.0,
+                y: 0.0,
+            })
+        } else {
+            None
+        };
+
         Window {
             width: default_window_width(),
             height: default_window_height(),
             mode: WindowMode::default(),
-            opacity: default_opacity(),
-            background_image: None,
+            opacity: 1.0,
+            background_image,
             decorations: Decorations::default(),
             blur: false,
             macos_use_unified_titlebar: false,

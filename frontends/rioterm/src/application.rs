@@ -980,6 +980,15 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                     }
                 }
             }
+            RioEventType::Rio(RioEvent::ComputeRequest { id, operation, data }) => {
+                // Mock GPU Offload - In future this would dispatch to WGPU Compute Pass
+                println!("Rio GPU Offload: Received Request #{} ({} bytes) for operation '{}'", id, data.len(), operation);
+                
+                // Simulate processing...
+                if operation == "grep" {
+                    println!("Rio GPU Offload: Searching {} bytes on GPU...", data.len());
+                }
+            }
             RioEventType::Rio(RioEvent::Edit(path)) => {
                 if let Some(route) = self.router.routes.get_mut(&window_id) {
                     let grid = route.window.screen.context_manager.current_grid_mut();
