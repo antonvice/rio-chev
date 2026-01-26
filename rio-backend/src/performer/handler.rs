@@ -435,6 +435,7 @@ pub trait Handler {
     fn spectrum(&mut self, _data: Vec<f32>) {}
     fn holographic_history(&mut self, _enabled: bool) {}
     fn history_add(&mut self, _command: String, _status: i32, _duration: f32) {}
+    fn semantic_block(&mut self, _action: char, _params: Vec<String>) {}
 }
 
 pub trait Timeout: Default {
@@ -1088,7 +1089,22 @@ impl<U: Handler, T: Timeout> copa::Perform for Performer<'_, U, T> {
                 }
             }
 
+            // Semantic Prompt (OSC 133)
+            b"133" => {
+                if params.len() >= 2 {
+                    let action = params[1].first().map(|&b| b as char).unwrap_or(' ');
+                    let mut extra_params = Vec::new();
+                    for param in &params[2..] {
+                        if let Ok(s) = simd_utf8::from_utf8_fast(param) {
+                            extra_params.push(s.to_string());
+                        }
+                    }
+                    self.handler.semantic_block(action, extra_params);
+                }
+            }
+
             _ => unhandled(params),
+
         }
     }
 

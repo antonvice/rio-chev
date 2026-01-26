@@ -117,6 +117,7 @@ pub struct TerminalSnapshot {
     // Cache terminal dimensions to avoid repeated calls
     pub columns: usize,
     pub screen_lines: usize,
+    pub blocks: Vec<rio_backend::crosswords::block::Block>,
 }
 
 #[derive(Debug, Default)]

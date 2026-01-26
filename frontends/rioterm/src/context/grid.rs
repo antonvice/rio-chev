@@ -84,7 +84,7 @@ pub struct ContextGrid<T: EventListener> {
     pub margin: Delta<f32>,
     border_color: [f32; 4],
     scaled_padding: f32,
-    inner: HashMap<usize, ContextGridItem<T>>,
+    pub inner: HashMap<usize, ContextGridItem<T>>,
     pub root: Option<usize>,
 }
 
@@ -195,7 +195,7 @@ impl<T: rio_backend::event::EventListener> ContextGrid<T> {
 
     #[inline]
     #[allow(unused)]
-    pub fn contexts(&mut self) -> &HashMap<usize, ContextGridItem<T>> {
+    pub fn contexts(&self) -> &HashMap<usize, ContextGridItem<T>> {
         &self.inner
     }
 

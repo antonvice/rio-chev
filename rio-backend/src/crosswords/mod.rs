@@ -19,7 +19,9 @@ pub mod grid;
 pub mod pos;
 pub mod search;
 pub mod square;
+pub mod block;
 pub mod vi_mode;
+
 
 use crate::ansi::graphics::GraphicCell;
 use crate::ansi::graphics::Graphics;
@@ -428,6 +430,7 @@ where
     title_stack: Vec<String>,
     pub current_directory: Option<std::path::PathBuf>,
 
+    pub blocks: Vec<block::Block>,
     // The stack for the keyboard modes.
     keyboard_mode_stack: [u8; KEYBOARD_MODE_STACK_MAX_DEPTH],
     keyboard_mode_idx: usize,
@@ -480,6 +483,7 @@ impl<U: EventListener> Crosswords<U> {
             route_id,
             title_stack: Default::default(),
             current_directory: None,
+            blocks: Vec::new(),
             keyboard_mode_stack: Default::default(),
             keyboard_mode_idx: 0,
             inactive_keyboard_mode_stack: Default::default(),
@@ -985,6 +989,27 @@ impl<U: EventListener> Crosswords<U> {
             .and_then(|s| s.rotate(&self.grid, &region, lines as i32));
 
         self.grid.scroll_up(&region, lines);
+        
+        let mut i = 0;
+        while i < self.blocks.len() {
+            let block = &mut self.blocks[i];
+            
+            // If the block start is within the scrolling region, move it up
+            if block.start_line >= origin && block.start_line < self.scroll_region.end {
+                block.start_line.0 -= lines as i32;
+            }
+            
+            // If it moved too far back (beyond history limit), we could remove it
+            // but for now let's keep it. 
+            // Most terminals have large history, so we don't worry about overflow of Line(i32) yet.
+
+            if let Some(ref mut end) = block.end_line {
+                if *end >= origin && *end < self.scroll_region.end {
+                    end.0 -= lines as i32;
+                }
+            }
+            i += 1;
+        }
 
         // Scroll vi mode cursor.
         let viewport_top = Line(-(self.grid.display_offset() as i32));
@@ -2198,6 +2223,47 @@ impl<U: EventListener> Handler for Crosswords<U> {
         );
     }
 
+    fn semantic_block(&mut self, action: char, params: Vec<String>) {
+        use crate::crosswords::block::{Block, BlockType};
+        let current_line = self.grid.cursor.pos.row;
+
+        match action {
+            'A' => {
+                // Prompt Started
+                let block = Block::new(BlockType::Prompt, current_line);
+                self.blocks.push(block);
+            }
+            'B' => {
+                // Command Started
+                if let Some(last) = self.blocks.last_mut() {
+                    last.end_line = Some(current_line);
+                }
+                let block = Block::new(BlockType::Command, current_line);
+                self.blocks.push(block);
+            }
+            'C' => {
+                // Command Finished / Output Started
+                if let Some(last) = self.blocks.last_mut() {
+                    last.end_line = Some(current_line);
+                }
+                let block = Block::new(BlockType::Output, current_line);
+                self.blocks.push(block);
+            }
+            'D' => {
+                // Output Finished
+                if let Some(last) = self.blocks.last_mut() {
+                    last.end_line = Some(current_line);
+                    if let Some(status_str) = params.get(0) {
+                        if let Ok(status) = status_str.parse::<i32>() {
+                            last.exit_code = Some(status);
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
     #[inline]
     fn configure_charset(
         &mut self,
@@ -2473,6 +2539,7 @@ impl<U: EventListener> Handler for Crosswords<U> {
                     self.selection.take().filter(|s| !s.intersects_range(range));
             }
             ClearMode::All => {
+                self.blocks.clear();
                 if self.mode.contains(Mode::ALT_SCREEN) {
                     self.grid.reset_region(..);
                 } else {

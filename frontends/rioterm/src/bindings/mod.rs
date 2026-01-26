@@ -1003,7 +1003,13 @@ pub fn platform_key_bindings(
         "h", ModifiersState::SUPER | ModifiersState::ALT; Action::HideOtherApplications;
         "m", ModifiersState::SUPER; Action::Minimize;
         "q", ModifiersState::SUPER; Action::Quit;
-        "n", ModifiersState::SUPER; Action::WindowCreateNew;
+        "n", ModifiersState::SUPER; Action::TabCreateNew;
+        "e", ModifiersState::SUPER | ModifiersState::SHIFT; Action::Esc("broot\n".into());
+        "f", ModifiersState::SUPER | ModifiersState::SHIFT; Action::SplitRight;
+        Key::Named(ArrowRight), ModifiersState::SUPER | ModifiersState::SHIFT; Action::SelectNextSplit;
+        Key::Named(ArrowLeft), ModifiersState::SUPER | ModifiersState::SHIFT; Action::SelectPrevSplit;
+        Key::Named(ArrowDown), ModifiersState::SUPER | ModifiersState::SHIFT; Action::SelectNextSplit;
+        Key::Named(ArrowUp), ModifiersState::SUPER | ModifiersState::SHIFT; Action::SelectPrevSplit;
         ",", ModifiersState::SUPER; Action::ConfigEditor;
         "a", ModifiersState::SUPER, ~BindingMode::VI; Action::SelectAll;
         Key::Named(Backspace), ModifiersState::SUPER, ~BindingMode::VI; Action::Esc("\x15".into());

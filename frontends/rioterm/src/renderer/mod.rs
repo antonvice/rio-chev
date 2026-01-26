@@ -1033,6 +1033,7 @@ impl Renderer {
                     damage,
                     columns: terminal.columns(),
                     screen_lines: terminal.screen_lines(),
+                    blocks: terminal.blocks.clone(),
                 };
                 terminal.reset_damage();
                 drop(terminal);
@@ -1236,6 +1237,11 @@ impl Renderer {
         self.render_progress_bar(&mut objects, current_context, window_size);
         self.render_recording_indicator(&mut objects, current_context, window_size);
         self.render_holographic_history(&mut objects, current_context, window_size);
+        
+        if let Some(current_item) = current_grid.inner.get(&current_grid.current) {
+            let position: [f32; 2] = current_item.position();
+            self.render_semantic_blocks(&mut objects, current_context, position);
+        }
         // let _duration = start.elapsed();
 
         // Update visual bell state and set overlay if needed
@@ -1615,6 +1621,138 @@ impl Renderer {
                     id: history_id,
                     position: [x + 30.0, 40.0],
                     lines: None,
+                }));
+            }
+        }
+    }
+
+    fn render_semantic_blocks(
+        &self,
+        objects: &mut Vec<Object>,
+        current_context: &crate::context::Context<EventProxy>,
+        pos: [f32; 2],
+    ) {
+        use rio_backend::crosswords::block::BlockType;
+
+        let terminal = current_context.terminal.lock();
+        if terminal.blocks.is_empty() {
+            return;
+        }
+
+        let dim = &current_context.dimension;
+        let scale = dim.dimension.scale;
+        
+        // char_height is the height of a single terminal row in logical pixels
+        let char_height = (dim.dimension.height * dim.line_height) / scale;
+        let screen_lines = dim.lines as i32;
+        
+        // The top-left of the terminal grid content area in logical pixels
+        let content_x = pos[0] + dim.margin.x;
+        let content_y = pos[1] + dim.margin.top_y;
+
+        // Group contiguous blocks (Prompt -> Command -> Output)
+        let mut i = 0;
+        while i < terminal.blocks.len() {
+            let start_block_idx = i;
+            let mut end_block_idx = i;
+            
+            while end_block_idx + 1 < terminal.blocks.len() {
+                let next = &terminal.blocks[end_block_idx + 1];
+                let current = &terminal.blocks[end_block_idx];
+                
+                if next.start_line == current.end_line.unwrap_or(current.start_line) {
+                    end_block_idx += 1;
+                    if next.block_type == BlockType::Output && next.exit_code.is_some() {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            let start_line = terminal.blocks[start_block_idx].start_line.0;
+            let end_line = terminal.blocks[end_block_idx].end_line.map(|l| l.0).unwrap_or(terminal.blocks[end_block_idx].start_line.0 + 1);
+
+            i = end_block_idx + 1;
+
+            // Skip if completely off-screen (accounting for display offset)
+            // Note: block lines are already shifted by display_offset if we are looking at Crosswords state
+            // but here we are looking at the raw block lines which are relative to the grid top.
+            // We need to account for display_offset to only show visible blocks.
+            let display_offset = terminal.grid.display_offset() as i32;
+            let relative_start = start_line + display_offset;
+            let relative_end = end_line + display_offset;
+
+            if relative_end < 0 || relative_start >= screen_lines {
+                continue;
+            }
+
+            let visible_start = relative_start.max(0);
+            let visible_end = relative_end.min(screen_lines);
+
+            let x = content_x + 2.0;
+            let y = content_y + (visible_start as f32 * char_height);
+            let block_width = (dim.width / scale) - (dim.margin.x * 2.0) - 4.0;
+            let block_height = (visible_end - visible_start) as f32 * char_height;
+
+            if block_height < 2.0 {
+                continue;
+            }
+
+            // Determine status color
+            let mut exit_code = None;
+            for j in start_block_idx..=end_block_idx {
+                if let Some(code) = terminal.blocks[j].exit_code {
+                    exit_code = Some(code);
+                }
+            }
+
+            let (bg_color, border_color, accent_color) = match exit_code {
+                Some(0) => (
+                    [0.43, 0.82, 0.76, 0.05], // Very subtle teal bg
+                    [0.43, 0.82, 0.76, 0.2],  // Teal border
+                    [0.43, 0.82, 0.76, 0.8],  // Success accent
+                ),
+                Some(_) => (
+                    [1.0, 0.4, 0.4, 0.05],    // Very subtle red bg
+                    [1.0, 0.4, 0.4, 0.2],     // Red border
+                    [1.0, 0.4, 0.4, 0.8],     // Error accent
+                ),
+                None => (
+                    [1.0, 1.0, 1.0, 0.03],    // Neutral faint white
+                    [1.0, 1.0, 1.0, 0.1],     // Neutral border
+                    [0.2, 0.6, 1.0, 0.8],     // Active blue accent
+                ),
+            };
+
+            // Main block background "Card"
+            objects.push(Object::Quad(Quad {
+                position: [x, y],
+                size: [block_width, block_height],
+                color: bg_color,
+                border_radius: [6.0, 6.0, 6.0, 6.0],
+                border_width: 1.0,
+                border_color,
+                ..Quad::default()
+            }));
+
+            // High-premium left-side indicator (Warp style)
+            objects.push(Object::Quad(Quad {
+                position: [x, y],
+                size: [3.0, block_height],
+                color: accent_color,
+                border_radius: [6.0, 0.0, 0.0, 6.0],
+                ..Quad::default()
+            }));
+
+            // Header highlight for the prompt line
+            if relative_start >= 0 && relative_start < screen_lines {
+                objects.push(Object::Quad(Quad {
+                    position: [x, y],
+                    size: [block_width, char_height],
+                    color: [1.0, 1.0, 1.0, 0.03],
+                    border_radius: [6.0, 6.0, 0.0, 0.0],
+                    ..Quad::default()
                 }));
             }
         }
