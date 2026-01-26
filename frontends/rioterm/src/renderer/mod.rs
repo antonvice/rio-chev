@@ -1642,43 +1642,49 @@ impl Renderer {
         let dim = &current_context.dimension;
         let scale = dim.dimension.scale;
         
-        // char_height is the height of a single terminal row in logical pixels
         let char_height = (dim.dimension.height * dim.line_height) / scale;
         let screen_lines = dim.lines as i32;
         
-        // The top-left of the terminal grid content area in logical pixels
         let content_x = pos[0] + dim.margin.x;
         let content_y = pos[1] + dim.margin.top_y;
+        let max_width = (dim.width / scale) - (dim.margin.x * 2.0) - 2.0;
 
-        // Group contiguous blocks (Prompt -> Command -> Output)
         let mut i = 0;
         while i < terminal.blocks.len() {
             let start_block_idx = i;
+            let current_type = &terminal.blocks[i].block_type;
+            let is_user_input = matches!(current_type, BlockType::Prompt | BlockType::Command);
+            
             let mut end_block_idx = i;
             
+            // Group contiguous blocks of similar "Chat side"
+            // - If User Input: Group Prompt + Command together.
+            // - If Output: Group continuous Output blocks.
             while end_block_idx + 1 < terminal.blocks.len() {
                 let next = &terminal.blocks[end_block_idx + 1];
-                let current = &terminal.blocks[end_block_idx];
+                let next_is_user = matches!(next.block_type, BlockType::Prompt | BlockType::Command);
                 
-                if next.start_line == current.end_line.unwrap_or(current.start_line) {
-                    end_block_idx += 1;
-                    if next.block_type == BlockType::Output && next.exit_code.is_some() {
-                        break;
-                    }
-                } else {
+                // Break if switching between User <-> System
+                if is_user_input != next_is_user {
                     break;
                 }
+                
+                // Also break if we jump huge distances (non-contiguous)
+                let current = &terminal.blocks[end_block_idx];
+                if next.start_line != current.end_line.unwrap_or(current.start_line) {
+                     break;
+                }
+
+                end_block_idx += 1;
             }
 
             let start_line = terminal.blocks[start_block_idx].start_line.0;
-            let end_line = terminal.blocks[end_block_idx].end_line.map(|l| l.0).unwrap_or(terminal.blocks[end_block_idx].start_line.0 + 1);
+            let mut end_line = terminal.blocks[end_block_idx].end_line.map(|l| l.0).unwrap_or(terminal.blocks[end_block_idx].start_line.0 + 1);
+            
+            if end_line <= start_line { end_line = start_line + 1; }
 
             i = end_block_idx + 1;
 
-            // Skip if completely off-screen (accounting for display offset)
-            // Note: block lines are already shifted by display_offset if we are looking at Crosswords state
-            // but here we are looking at the raw block lines which are relative to the grid top.
-            // We need to account for display_offset to only show visible blocks.
             let display_offset = terminal.grid.display_offset() as i32;
             let relative_start = start_line + display_offset;
             let relative_end = end_line + display_offset;
@@ -1689,69 +1695,77 @@ impl Renderer {
 
             let visible_start = relative_start.max(0);
             let visible_end = relative_end.min(screen_lines);
-
-            let x = content_x + 2.0;
-            let y = content_y + (visible_start as f32 * char_height);
-            let block_width = (dim.width / scale) - (dim.margin.x * 2.0) - 4.0;
+            
             let block_height = (visible_end - visible_start) as f32 * char_height;
+            if block_height < 1.0 { continue; }
 
-            if block_height < 2.0 {
-                continue;
-            }
+            let y = content_y + (visible_start as f32 * char_height);
 
-            // Determine status color
-            let mut exit_code = None;
-            for j in start_block_idx..=end_block_idx {
-                if let Some(code) = terminal.blocks[j].exit_code {
-                    exit_code = Some(code);
-                }
-            }
-
-            let (bg_color, border_color, accent_color) = match exit_code {
-                Some(0) => (
-                    [0.43, 0.82, 0.76, 0.05], // Very subtle teal bg
-                    [0.43, 0.82, 0.76, 0.2],  // Teal border
-                    [0.43, 0.82, 0.76, 0.8],  // Success accent
-                ),
-                Some(_) => (
-                    [1.0, 0.4, 0.4, 0.05],    // Very subtle red bg
-                    [1.0, 0.4, 0.4, 0.2],     // Red border
-                    [1.0, 0.4, 0.4, 0.8],     // Error accent
-                ),
-                None => (
-                    [1.0, 1.0, 1.0, 0.03],    // Neutral faint white
-                    [1.0, 1.0, 1.0, 0.1],     // Neutral border
-                    [0.2, 0.6, 1.0, 0.8],     // Active blue accent
-                ),
-            };
-
-            // Main block background "Card"
-            objects.push(Object::Quad(Quad {
-                position: [x, y],
-                size: [block_width, block_height],
-                color: bg_color,
-                border_radius: [6.0, 6.0, 6.0, 6.0],
-                border_width: 1.0,
-                border_color,
-                ..Quad::default()
-            }));
-
-            // High-premium left-side indicator (Warp style)
-            objects.push(Object::Quad(Quad {
-                position: [x, y],
-                size: [3.0, block_height],
-                color: accent_color,
-                border_radius: [6.0, 0.0, 0.0, 6.0],
-                ..Quad::default()
-            }));
-
-            // Header highlight for the prompt line
-            if relative_start >= 0 && relative_start < screen_lines {
+            if is_user_input {
+                // USER BUBBLE (Left side)
+                // Looks like "Me" sending a message
+                // Constrain width to look like a message
+                let bubble_width = (max_width * 0.75).min(max_width);
+                let bg_color = [0.1, 0.3, 0.4, 0.2]; // Subtle Teal/Blue
+                let border_color = [0.43, 0.82, 0.76, 0.3]; // Teal border
+                
                 objects.push(Object::Quad(Quad {
-                    position: [x, y],
-                    size: [block_width, char_height],
-                    color: [1.0, 1.0, 1.0, 0.03],
-                    border_radius: [6.0, 6.0, 0.0, 0.0],
+                    position: [content_x, y],
+                    size: [bubble_width, block_height],
+                    color: bg_color,
+                    border_radius: [12.0, 12.0, 12.0, 2.0], // "Chat bubble" shape
+                    border_width: 1.0,
+                    border_color,
+                    ..Quad::default()
+                }));
+                
+                // "Me" indicator strip on left
+                objects.push(Object::Quad(Quad {
+                    position: [content_x, y + 2.0],
+                    size: [2.0, block_height - 4.0],
+                    color: [0.43, 0.82, 0.76, 0.8], // Teal accent
+                    border_radius: [2.0, 2.0, 2.0, 2.0],
+                    ..Quad::default()
+                }));
+
+            } else {
+                // SYSTEM/OUTPUT BUBBLE
+                // "output on right side" -> We style it distinctly. 
+                // We'll give it a distinct background and an indicator on the RIGHT to signify "Received".
+                
+                let bubble_width = max_width; 
+                let x_pos = content_x; // Must start at content_x to cover text
+
+                // Check for error
+                 let mut is_error = false;
+                for j in start_block_idx..=end_block_idx {
+                    if let Some(code) = terminal.blocks[j].exit_code {
+                        if code != 0 { is_error = true; break; }
+                    }
+                }
+                
+                let bg_color = if is_error {
+                     [0.3, 0.1, 0.1, 0.15] // Red tint
+                } else {
+                     [0.15, 0.15, 0.15, 0.15] // Dark Gray tint
+                };
+
+                objects.push(Object::Quad(Quad {
+                    position: [x_pos, y],
+                    size: [bubble_width, block_height],
+                    color: bg_color,
+                    border_radius: [2.0, 12.0, 12.0, 12.0], 
+                    border_width: 0.0,
+                    ..Quad::default() 
+                }));
+                
+                // "Received" indicator strip on the RIGHT
+                let strip_color = if is_error { [0.8, 0.3, 0.3, 0.8] } else { [0.5, 0.5, 0.5, 0.5] };
+                 objects.push(Object::Quad(Quad {
+                    position: [content_x + bubble_width - 3.0, y],
+                    size: [3.0, block_height],
+                    color: strip_color,
+                    border_radius: [0.0, 4.0, 4.0, 0.0],
                     ..Quad::default()
                 }));
             }
